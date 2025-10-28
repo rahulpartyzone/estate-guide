@@ -1,0 +1,43 @@
+name: Setup Backend Environment
+
+description: >-
+  Configure Node.js, install dependencies, and prepare Prisma artifacts for backend workflows.
+
+inputs:
+  working-directory:
+    description: Relative path to the backend project root
+    required: false
+    default: server
+  node-version:
+    description: Node.js version to use
+    required: false
+    default: '20'
+  install-command:
+    description: Package manager command to install backend dependencies
+    required: false
+    default: npm ci
+  prisma-generate:
+    description: Whether to run prisma generate after installing dependencies
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: ${{ inputs.install-command }}
+
+    - name: Generate Prisma Client
+      if: ${{ inputs.prisma-generate == 'true' }}
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npx prisma generate

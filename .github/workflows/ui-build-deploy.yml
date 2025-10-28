@@ -1,0 +1,141 @@
+name: UI Build & Deploy
+
+on:
+  pull_request:
+    branches:
+      - '**'
+  push:
+    branches:
+      - develop
+      - main
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+  id-token: write
+  deployments: write
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  preview:
+    name: Build & Preview Deploy
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Authenticate to Google Cloud
+        uses: ./.github/actions/gcloud-auth
+        with:
+          workload-identity-provider: ${{ secrets.GCP_UI_WORKLOAD_ID_PROVIDER }}
+          service-account: ${{ secrets.GCP_UI_SERVICE_ACCOUNT }}
+          project-id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Generate environment file from Secret Manager
+        run: |
+          CONFIG=$(gcloud secrets versions access latest --secret="${{ vars.UI_PREVIEW_ENV_SECRET }}")
+          echo "$CONFIG" | jq -r 'to_entries[] | "\(.key)=\(.value)"' > .env.production
+
+      - name: Build UI
+        run: npm run build
+
+      - name: Deploy preview channel
+        id: preview
+        env:
+          FIREBASE_PROJECT: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: |
+          ./scripts/firebase-deploy.sh preview "${{ vars.FIREBASE_PREVIEW_TARGET }}" "pr-${{ github.event.number }}-${{ github.run_number }}"
+
+      - name: Expose preview URL
+        if: steps.preview.outputs.preview_url != ''
+        run: echo "Preview URL: ${{ steps.preview.outputs.preview_url }}"
+
+  deploy_staging:
+    name: Deploy Staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://${{ vars.FIREBASE_STAGING_HOSTNAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Authenticate to Google Cloud
+        uses: ./.github/actions/gcloud-auth
+        with:
+          workload-identity-provider: ${{ secrets.GCP_UI_WORKLOAD_ID_PROVIDER }}
+          service-account: ${{ secrets.GCP_UI_SERVICE_ACCOUNT }}
+          project-id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Generate environment file from Secret Manager
+        run: |
+          CONFIG=$(gcloud secrets versions access latest --secret="${{ vars.UI_STAGING_ENV_SECRET }}")
+          echo "$CONFIG" | jq -r 'to_entries[] | "\(.key)=\(.value)"' > .env.production
+
+      - name: Build UI
+        run: npm run build
+
+      - name: Deploy to Firebase Hosting (staging)
+        env:
+          FIREBASE_PROJECT: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: ./scripts/firebase-deploy.sh staging "${{ vars.FIREBASE_STAGING_TARGET }}"
+
+  deploy_production:
+    name: Deploy Production
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ vars.FIREBASE_PROD_HOSTNAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Make scripts executable
+        run: chmod +x ./scripts/*.sh
+
+      - name: Authenticate to Google Cloud
+        uses: ./.github/actions/gcloud-auth
+        with:
+          workload-identity-provider: ${{ secrets.GCP_UI_WORKLOAD_ID_PROVIDER }}
+          service-account: ${{ secrets.GCP_UI_SERVICE_ACCOUNT }}
+          project-id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Generate environment file from Secret Manager
+        run: |
+          CONFIG=$(gcloud secrets versions access latest --secret="${{ vars.UI_PROD_ENV_SECRET }}")
+          echo "$CONFIG" | jq -r 'to_entries[] | "\(.key)=\(.value)"' > .env.production
+
+      - name: Build UI
+        run: npm run build
+
+      - name: Deploy to Firebase Hosting (production)
+        env:
+          FIREBASE_PROJECT: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: ./scripts/firebase-deploy.sh production "${{ vars.FIREBASE_PROD_TARGET }}"

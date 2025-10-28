@@ -1,0 +1,44 @@
+name: Authenticate with Google Cloud
+
+description: >-
+  Authenticate to Google Cloud using Workload Identity Federation and install the gcloud CLI.
+
+inputs:
+  workload-identity-provider:
+    description: Full resource name of the Workload Identity Provider
+    required: true
+  service-account:
+    description: Email of the service account to impersonate
+    required: true
+  project-id:
+    description: Google Cloud project ID to set as default
+    required: true
+  export-default-credentials:
+    description: Whether to export GOOGLE_APPLICATION_CREDENTIALS for child steps
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ inputs.workload-identity-provider }}
+        service_account: ${{ inputs.service-account }}
+        token_format: access_token
+        access_token_lifetime: '3600s'
+
+    - name: Install gcloud CLI
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ inputs.project-id }}
+
+    - name: Export application default credentials
+      if: ${{ inputs.export-default-credentials == 'true' }}
+      shell: bash
+      run: |
+        if [ -n "${{ steps.auth.outputs.credentials_file_path }}" ]; then
+          echo "GOOGLE_APPLICATION_CREDENTIALS=${{ steps.auth.outputs.credentials_file_path }}" >> $GITHUB_ENV
+        fi

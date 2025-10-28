@@ -1,0 +1,7 @@
+{
+  "root": true,
+  "parserOptions": { "ecmaVersion": 2023, "sourceType": "module" },
+  "env": { "node": true, "es2021": true },
+  "extends": ["plugin:import/recommended", "prettier"],
+  "rules": { "import/no-unresolved": "off" }
+}

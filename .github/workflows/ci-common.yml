@@ -1,0 +1,55 @@
+name: CI Checks
+
+on:
+  pull_request:
+    branches:
+      - '**'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  ui-checks:
+    name: UI Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
+        with:
+          working-directory: .
+          node-version: '20'
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  backend-checks:
+    name: Backend Lint & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+        with:
+          working-directory: server
+          node-version: '20'
+
+      - name: Lint
+        working-directory: server
+        run: npm run lint
+
+      - name: Run Unit Tests
+        working-directory: server
+        run: npm run test -- --runInBand
+
+      - name: Build
+        working-directory: server
+        run: npm run build

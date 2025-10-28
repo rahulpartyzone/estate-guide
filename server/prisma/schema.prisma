@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PropertyType {
+  Apartment
+  Villa
+  Plot
+  LuxuryHomes
+  NewLaunch
+  Resale
+}
+
+enum ProjectStatus {
+  UnderConstruction
+  ReadyToMove
+  Upcoming
+  NewLaunch
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      String // ADMIN | EDITOR
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Builder {
+  id              String     @id @default(uuid())
+  name            String
+  description     String
+  experienceYears Int?
+  rating          Decimal?   @db.Decimal(3, 2)
+  website         String?
+  phone           String?
+  email           String?
+  logoUrl         String?
+  properties      Property[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Property {
+  id                  String            @id @default(uuid())
+  builderId           String
+  builder             Builder           @relation(fields: [builderId], references: [id])
+  name                String
+  slug                String            @unique
+  description         String
+  addressLine         String?
+  city                String
+  area                String
+  propertyType        PropertyType
+  status              ProjectStatus
+  isHotProject        Boolean           @default(false)
+  priceMin            Decimal?
+  priceMax            Decimal?
+  currency            String            @default("INR")
+  sizeMin             Int?
+  sizeMax             Int?
+  sizeUnit            String            @default("sqft")
+  bedrooms            Int?
+  bathrooms           Int?
+  completionDate      DateTime?
+  lat                 Float?
+  lng                 Float?
+  mainImageUrl        String
+  published           Boolean           @default(true)
+  brochureUrl         String?
+  reraId              String?
+  parkingSpaces       Int?
+  furnishing          String?
+  facing              String?
+  maintenanceFee      Decimal?
+  maintenanceCurrency String?           @default("INR")
+  launchDate          DateTime?
+  tags                String[]
+  seoTitle            String?
+  seoDescription      String?
+  featuredRank        Int?
+  views               Int               @default(0)
+  saves               Int               @default(0)
+  images              PropertyImage[]
+  amenities           PropertyAmenity[]
+  floorPlans          FloorPlan[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  Lead                Lead[]
+  BrochureOtp         BrochureOtp[]
+  Wishlist            Wishlist[]
+
+  @@index([city])
+  @@index([propertyType])
+  @@index([status])
+  @@index([isHotProject])
+  @@index([createdAt])
+}
+
+model PropertyImage {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  url        String
+  altText    String?
+  sortOrder  Int?
+}
+
+model Amenity {
+  id       String            @id @default(uuid())
+  name     String            @unique
+  code     String?           @unique
+  imageUrl String?
+  props    PropertyAmenity[]
+}
+
+model PropertyAmenity {
+  propertyId String
+  amenityId  String
+  property   Property @relation(fields: [propertyId], references: [id])
+  amenity    Amenity  @relation(fields: [amenityId], references: [id])
+
+  @@id([propertyId, amenityId])
+}
+
+model FloorPlan {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  unitType   String
+  size       Int
+  unit       String
+  price      Decimal
+  currency   String   @default("INR")
+  imageUrl   String
+  bedrooms   Int?
+  bathrooms  Int?
+}
+
+model Testimonial {
+  id        String   @id @default(uuid())
+  name      String
+  role      String
+  company   String
+  content   String
+  rating    Int
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscriber {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  name             String?
+  status           String    @default("active") // active|unsubscribed
+  subscribedAt     DateTime  @default(now())
+  unsubscribedAt   DateTime?
+  unsubscribeToken String    @unique
+}
+
+model Lead {
+  id            String    @id @default(uuid())
+  propertyId    String?
+  property      Property? @relation(fields: [propertyId], references: [id])
+  type          String // site_visit|info|brochure
+  name          String
+  email         String
+  phone         String
+  message       String?
+  preferredDate DateTime?
+  status        String    @default("new") // new|contacted|closed|invalid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model BrochureOtp {
+  id         String    @id @default(uuid())
+  propertyId String
+  property   Property  @relation(fields: [propertyId], references: [id])
+  contact    String // phone or email
+  otpHash    String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model Wishlist {
+  anonId     String
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@id([anonId, propertyId])
+}
+
+model Agent {
+  id       String  @id @default(uuid())
+  name     String
+  phone    String
+  email    String?
+  photoUrl String?
+}
+
+model Neighborhood {
+  id          String  @id @default(uuid())
+  name        String
+  city        String
+  description String?
+  lat         Float?
+  lng         Float?
+}
+
+// Generic binary file storage for DB storage mode (images, brochures, etc.)
+model FileAsset {
+  id        String   @id @default(uuid())
+  filename  String
+  mimeType  String
+  size      Int
+  checksum  String?  // sha256
+  data      Bytes
+  width     Int?
+  height    Int?
+  originalId String?
+  original   FileAsset? @relation("VariantRelation", fields: [originalId], references: [id])
+  variants   FileAsset[] @relation("VariantRelation")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([mimeType])
+  @@index([checksum])
+  @@index([originalId])
+}

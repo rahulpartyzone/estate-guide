@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: estate-guide-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: estate
+      POSTGRES_PASSWORD: estatepass
+      POSTGRES_DB: estateguide
+    ports:
+      - "5433:5432"  # map container 5432 to host 5433 to avoid local Postgres conflict
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U estate"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  pgadmin:
+    image: dpage/pgadmin4:8.11
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+volumes:
+  pgdata:

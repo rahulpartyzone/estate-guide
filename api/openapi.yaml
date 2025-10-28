@@ -1,0 +1,1349 @@
+openapi: 3.1.0
+info:
+  title: Estate Guide API
+  version: 1.0.0
+  description: |
+    REST API for Estate Guide. Targets GCP Cloud Run, Cloud SQL (PostgreSQL), and Cloud Storage.
+    - Auth via JWT (access + refresh)
+    - MSG91 for OTP (brochure downloads)
+    - Cookie-based anonymous wishlist (anonId)
+servers:
+  - url: /api/v1
+    description: Relative server (Cloud Run behind proxy)
+tags:
+  - name: Auth
+  - name: Properties
+  - name: Builders
+  - name: Testimonials
+  - name: Subscribers
+  - name: Leads
+  - name: Wishlist
+  - name: Admin
+  - name: System
+  - name: Agents
+  - name: Neighborhoods
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login as admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK. Sets httpOnly secure cookies for access and refresh tokens.
+          headers:
+            Set-Cookie:
+              description: accessToken=...; HttpOnly; Secure; SameSite=Lax and refreshToken=...; HttpOnly; Secure; SameSite=Lax
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  message: { type: string, example: 'Logged in' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: Uses httpOnly refreshToken cookie; no request body needed.
+      responses:
+        '204':
+          description: No Content. Sets new access/refresh token cookies.
+          headers:
+            Set-Cookie:
+              description: Rotated accessToken and refreshToken cookies
+              schema:
+                type: string
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout and revoke refresh token
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: No Content. Clears auth cookies.
+          headers:
+            Set-Cookie:
+              description: accessToken=; Max-Age=0; HttpOnly; Secure; SameSite=Lax and refreshToken cleared
+              schema:
+                type: string
+
+  /properties:
+    get:
+      tags: [Properties]
+      summary: List properties with filters and pagination
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: city
+          schema: { type: string }
+        - in: query
+          name: area
+          schema: { type: string }
+        - in: query
+          name: builderId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: propertyType
+          schema: { $ref: '#/components/schemas/PropertyType' }
+        - in: query
+          name: status
+          schema: { $ref: '#/components/schemas/ProjectStatus' }
+        - in: query
+          name: isHot
+          schema: { type: boolean }
+        - in: query
+          name: bedrooms
+          schema: { type: integer, minimum: 0 }
+        - in: query
+          name: priceMin
+          schema: { type: number }
+        - in: query
+          name: priceMax
+          schema: { type: number }
+        - in: query
+          name: lat
+          schema: { type: number, minimum: -90, maximum: 90 }
+        - in: query
+          name: lng
+          schema: { type: number, minimum: -180, maximum: 180 }
+        - in: query
+          name: radiusKm
+          schema: { type: number, minimum: 0 }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [newest, price, name, distance] }
+        - in: query
+          name: order
+          schema: { type: string, enum: [asc, desc] }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Property' }
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+  /properties/hot:
+    get:
+      tags: [Properties]
+      summary: List hot projects
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 50, default: 8 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Property' }
+  /properties/{id}:
+    get:
+      tags: [Properties]
+      summary: Get property detail
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PropertyDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /properties/{id}/floor-plans:
+    get:
+      tags: [Properties]
+      summary: List floor plans for a property
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FloorPlan' }
+
+  /builders:
+    get:
+      tags: [Builders]
+      summary: List builders
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Builder' }
+  /builders/{id}:
+    get:
+      tags: [Builders]
+      summary: Get builder detail
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Builder' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /testimonials:
+    get:
+      tags: [Testimonials]
+      summary: List published testimonials
+      parameters:
+        - in: query
+          name: published
+          schema: { type: boolean, default: true }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Testimonial' }
+
+  /subscribers:
+    post:
+      tags: [Subscribers]
+      summary: Subscribe to newsletter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubscriberCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Subscriber' }
+  /subscribers/unsubscribe:
+    post:
+      tags: [Subscribers]
+      summary: Unsubscribe via token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '204': { description: No Content }
+
+  /properties/{id}/leads/site-visit:
+    post:
+      tags: [Leads]
+      summary: Create a site-visit lead for a property
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeadCreateSiteVisit' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Lead' }
+  /properties/{id}/leads/info:
+    post:
+      tags: [Leads]
+      summary: Create an info-request lead for a property
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeadCreateInfo' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Lead' }
+
+  /properties/{id}/brochure/request-otp:
+    post:
+      tags: [Leads]
+      summary: Request OTP for brochure download (MSG91)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OTPRequest' }
+      responses:
+        '204': { description: OTP sent }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /properties/{id}/brochure/verify-otp:
+    post:
+      tags: [Leads]
+      summary: Verify OTP and return a signed brochure URL
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [otp]
+              properties:
+                otp: { type: string, minLength: 4, maxLength: 8 }
+                contact: { type: string, description: Email or phone used for OTP }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OTPVerifyResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /wishlist:
+    get:
+      tags: [Wishlist]
+      summary: Get current wishlist for anonId
+      parameters:
+        - in: cookie
+          name: anonId
+          required: false
+          schema: { type: string }
+          description: Readable cookie set by frontend; server may verify signature internally
+        - in: header
+          name: X-Anon-Id
+          required: false
+          schema: { type: string }
+          description: Optional fallback if cookie is not available
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  propertyIds:
+                    type: array
+                    items: { type: string, format: uuid }
+    post:
+      tags: [Wishlist]
+      summary: Add a property to wishlist by anonId
+      parameters:
+        - in: cookie
+          name: anonId
+          required: false
+          schema: { type: string }
+        - in: header
+          name: X-Anon-Id
+          required: false
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [propertyId]
+              properties:
+                propertyId: { type: string, format: uuid }
+      responses:
+        '201': { description: Created }
+  /wishlist/{propertyId}:
+    delete:
+      tags: [Wishlist]
+      summary: Remove a property from wishlist
+      parameters:
+        - in: cookie
+          name: anonId
+          required: false
+          schema: { type: string }
+        - in: header
+          name: X-Anon-Id
+          required: false
+          schema: { type: string }
+        - in: path
+          name: propertyId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: No Content }
+
+  /agents:
+    get:
+      tags: [Agents]
+      summary: List agents (public)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Agent' }
+  /neighborhoods:
+    get:
+      tags: [Neighborhoods]
+      summary: List neighborhoods (public)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Neighborhood' }
+
+  /admin/properties:
+    post:
+      tags: [Admin]
+      summary: Create property
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PropertyCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PropertyDetail' }
+  /admin/properties/{id}:
+    put:
+      tags: [Admin]
+      summary: Update property
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PropertyUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PropertyDetail' }
+    delete:
+      tags: [Admin]
+      summary: Delete property
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: No Content }
+  /admin/properties/{id}/hot:
+    patch:
+      tags: [Admin]
+      summary: Toggle hot project flag
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isHotProject: { type: boolean }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Property' }
+  /admin/properties/{id}/images/presign:
+    post:
+      tags: [Admin]
+      summary: Generate a presigned URL for image upload (Cloud Storage)
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contentType]
+              properties:
+                contentType: { type: string, example: image/jpeg }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploadUrl: { type: string }
+                  publicUrl: { type: string }
+  /admin/properties/{id}/brochure/presign:
+    post:
+      tags: [Admin]
+      summary: Generate a presigned URL for brochure upload (PDF)
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contentType]
+              properties:
+                contentType: { type: string, example: application/pdf }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploadUrl: { type: string }
+                  publicUrl: { type: string }
+
+  /admin/builders:
+    post:
+      tags: [Admin]
+      summary: Create builder
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BuilderCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Builder' }
+  /admin/builders/{id}:
+    put:
+      tags: [Admin]
+      summary: Update builder
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BuilderUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Builder' }
+    delete:
+      tags: [Admin]
+      summary: Delete builder
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: No Content }
+
+  /admin/testimonials:
+    post:
+      tags: [Admin]
+      summary: Create testimonial
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TestimonialCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Testimonial' }
+  /admin/testimonials/{id}:
+    put:
+      tags: [Admin]
+      summary: Update testimonial
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TestimonialUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Testimonial' }
+    delete:
+      tags: [Admin]
+      summary: Delete testimonial
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: No Content }
+  /admin/testimonials/{id}/publish:
+    patch:
+      tags: [Admin]
+      summary: Publish/unpublish testimonial
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                published: { type: boolean }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Testimonial' }
+
+  /admin/subscribers:
+    get:
+      tags: [Admin]
+      summary: List subscribers (admin)
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: status
+          schema: { $ref: '#/components/schemas/SubscriberStatus' }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Subscriber' }
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+  /admin/subscribers/{id}:
+    delete:
+      tags: [Admin]
+      summary: Delete subscriber
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: No Content }
+  /admin/subscribers/export:
+    get:
+      tags: [Admin]
+      summary: Export active subscribers as CSV
+      security: [ { bearerAuth: [] } ]
+      responses:
+        '200':
+          description: text/csv
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /admin/leads:
+    get:
+      tags: [Admin]
+      summary: List leads
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: type
+          schema: { $ref: '#/components/schemas/LeadType' }
+        - in: query
+          name: status
+          schema: { $ref: '#/components/schemas/LeadStatus' }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Lead' }
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+  /admin/leads/{id}:
+    patch:
+      tags: [Admin]
+      summary: Update lead status
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { $ref: '#/components/schemas/LeadStatus' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Lead' }
+
+  /admin/agents:
+    post:
+      tags: [Admin]
+      summary: Create agent
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AgentCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agent' }
+  /admin/agents/{id}:
+    put:
+      tags: [Admin]
+      summary: Update agent
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AgentUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agent' }
+    delete:
+      tags: [Admin]
+      summary: Delete agent
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: No Content }
+
+  /admin/neighborhoods:
+    post:
+      tags: [Admin]
+      summary: Create neighborhood
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NeighborhoodCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Neighborhood' }
+  /admin/neighborhoods/{id}:
+    put:
+      tags: [Admin]
+      summary: Update neighborhood
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NeighborhoodUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Neighborhood' }
+    delete:
+      tags: [Admin]
+      summary: Delete neighborhood
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: No Content }
+
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: Dashboard stats
+      security: [ { bearerAuth: [] } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Stats' }
+
+  /healthz:
+    get:
+      tags: [System]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+  /version:
+    get:
+      tags: [System]
+      summary: Version info
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version: { type: string }
+                  commit: { type: string }
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: accessToken
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    TooManyRequests:
+      description: Too Many Requests
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+        code: { type: string }
+    PaginationMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+
+    PropertyType:
+      type: string
+      enum: [Apartment, Villa, Plot, LuxuryHomes, NewLaunch, Resale]
+    ProjectStatus:
+      type: string
+      enum: [UnderConstruction, ReadyToMove, Upcoming, NewLaunch]
+    Price:
+      type: object
+      properties:
+        min: { type: number }
+        max: { type: number }
+        currency: { type: string, example: INR }
+    Size:
+      type: object
+      properties:
+        min: { type: integer, example: 900 }
+        max: { type: integer, example: 1800 }
+        unit: { type: string, example: sqft }
+    Coordinates:
+      type: object
+      properties:
+        lat: { type: number }
+        lng: { type: number }
+    BuilderRef:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+    FloorPlan:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        unitType: { type: string, example: 2BHK }
+        size: { type: integer }
+        unit: { type: string, example: sqft }
+        price: { type: number }
+        currency: { type: string, example: INR }
+        imageUrl: { type: string }
+    Property:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        addressLine: { type: string }
+        city: { type: string }
+        area: { type: string }
+        builder: { $ref: '#/components/schemas/BuilderRef' }
+        propertyType: { $ref: '#/components/schemas/PropertyType' }
+        status: { $ref: '#/components/schemas/ProjectStatus' }
+        isHotProject: { type: boolean }
+        price: { $ref: '#/components/schemas/Price' }
+        size: { $ref: '#/components/schemas/Size' }
+        bedrooms: { type: integer, nullable: true }
+        bathrooms: { type: integer, nullable: true }
+        completionDate: { type: string, format: date, nullable: true }
+        coordinates: { $ref: '#/components/schemas/Coordinates' }
+        mainImageUrl: { type: string }
+        reraId: { type: string, nullable: true }
+        parkingSpaces: { type: integer, nullable: true }
+        furnishing: { type: string, nullable: true }
+        facing: { type: string, nullable: true }
+        maintenanceFee: { type: number, nullable: true }
+        maintenanceCurrency: { type: string, nullable: true }
+        launchDate: { type: string, format: date, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        seoTitle: { type: string, nullable: true }
+        seoDescription: { type: string, nullable: true }
+        featuredRank: { type: integer, nullable: true }
+        views: { type: integer }
+        saves: { type: integer }
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              url: { type: string }
+              alt: { type: string }
+              sortOrder: { type: integer }
+        amenities:
+          type: array
+          items: { type: string }
+        published: { type: boolean }
+    PropertyDetail:
+      allOf:
+        - $ref: '#/components/schemas/Property'
+        - type: object
+          properties:
+            floorPlans:
+              type: array
+              items: { $ref: '#/components/schemas/FloorPlan' }
+            brochureAvailable: { type: boolean }
+
+    PropertyCreate:
+      type: object
+      required: [name, description, city, area, builderId, propertyType, status, price, size, mainImageUrl]
+      properties:
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        addressLine: { type: string }
+        city: { type: string }
+        area: { type: string }
+        builderId: { type: string, format: uuid }
+        propertyType: { $ref: '#/components/schemas/PropertyType' }
+        status: { $ref: '#/components/schemas/ProjectStatus' }
+        isHotProject: { type: boolean }
+        price: { $ref: '#/components/schemas/Price' }
+        size: { $ref: '#/components/schemas/Size' }
+        bedrooms: { type: integer, nullable: true }
+        bathrooms: { type: integer, nullable: true }
+        completionDate: { type: string, format: date, nullable: true }
+        coordinates: { $ref: '#/components/schemas/Coordinates' }
+        mainImageUrl: { type: string }
+        reraId: { type: string, nullable: true }
+        parkingSpaces: { type: integer, nullable: true }
+        furnishing: { type: string, nullable: true }
+        facing: { type: string, nullable: true }
+        maintenanceFee: { type: number, nullable: true }
+        maintenanceCurrency: { type: string, nullable: true }
+        launchDate: { type: string, format: date, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        seoTitle: { type: string, nullable: true }
+        seoDescription: { type: string, nullable: true }
+        featuredRank: { type: integer, nullable: true }
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              url: { type: string }
+              alt: { type: string }
+              sortOrder: { type: integer }
+        amenities:
+          type: array
+          items: { type: string }
+        floorPlans:
+          type: array
+          items: { $ref: '#/components/schemas/FloorPlan' }
+        published: { type: boolean }
+    PropertyUpdate:
+      allOf:
+        - $ref: '#/components/schemas/PropertyCreate'
+
+    Builder:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        experienceYears: { type: integer, nullable: true }
+        website: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        logoUrl: { type: string, nullable: true }
+    BuilderCreate:
+      type: object
+      required: [name, description]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        experienceYears: { type: integer, nullable: true }
+        website: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        logoUrl: { type: string, nullable: true }
+    BuilderUpdate:
+      allOf:
+        - $ref: '#/components/schemas/BuilderCreate'
+
+    Testimonial:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        role: { type: string }
+        company: { type: string }
+        content: { type: string }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        published: { type: boolean }
+    TestimonialCreate:
+      type: object
+      required: [name, role, company, content, rating]
+      properties:
+        name: { type: string }
+        role: { type: string }
+        company: { type: string }
+        content: { type: string }
+        rating: { type: integer }
+        published: { type: boolean }
+    TestimonialUpdate:
+      allOf:
+        - $ref: '#/components/schemas/TestimonialCreate'
+
+    SubscriberStatus:
+      type: string
+      enum: [active, unsubscribed]
+    Subscriber:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        name: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/SubscriberStatus' }
+        subscribedAt: { type: string, format: date-time }
+        unsubscribedAt: { type: string, format: date-time, nullable: true }
+    SubscriberCreate:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+        name: { type: string, nullable: true }
+
+    LeadType:
+      type: string
+      enum: [site_visit, info, brochure]
+    LeadStatus:
+      type: string
+      enum: [new, contacted, closed, invalid]
+    Lead:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        propertyId: { type: string, format: uuid, nullable: true }
+        type: { $ref: '#/components/schemas/LeadType' }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        message: { type: string, nullable: true }
+        preferredDate: { type: string, format: date-time, nullable: true }
+        status: { $ref: '#/components/schemas/LeadStatus' }
+        createdAt: { type: string, format: date-time }
+    LeadCreateBase:
+      type: object
+      required: [name, email, phone]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        message: { type: string, nullable: true }
+    LeadCreateSiteVisit:
+      allOf:
+        - $ref: '#/components/schemas/LeadCreateBase'
+        - type: object
+          properties:
+            preferredDate: { type: string, format: date-time, nullable: true }
+    LeadCreateInfo:
+      allOf:
+        - $ref: '#/components/schemas/LeadCreateBase'
+
+    OTPRequest:
+      type: object
+      description: Accepts either phone or email. For MSG91 SMS, provide phone in E.164.
+      properties:
+        phone: { type: string, description: E.164 format, example: "+919876543210" }
+        email: { type: string, format: email }
+      oneOf:
+        - required: [phone]
+        - required: [email]
+    OTPVerifyResponse:
+      type: object
+      properties:
+        downloadUrl: { type: string, description: Time-limited signed URL to brochure }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { type: string, enum: [ADMIN, EDITOR] }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    LoginResponse:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+
+    Agent:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        photoUrl: { type: string, nullable: true }
+    AgentCreate:
+      type: object
+      required: [name, phone]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        email: { type: string, nullable: true }
+        photoUrl: { type: string, nullable: true }
+    AgentUpdate:
+      allOf:
+        - $ref: '#/components/schemas/AgentCreate'
+
+    Neighborhood:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        city: { type: string }
+        description: { type: string, nullable: true }
+    NeighborhoodCreate:
+      type: object
+      required: [name, city]
+      properties:
+        name: { type: string }
+        city: { type: string }
+        description: { type: string, nullable: true }
+    NeighborhoodUpdate:
+      allOf:
+        - $ref: '#/components/schemas/NeighborhoodCreate'

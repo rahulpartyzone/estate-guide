@@ -1,0 +1,33 @@
+name: Setup Node with Cache
+
+description: >-
+  Configure Node.js with dependency caching and run installation for frontend workflows.
+
+inputs:
+  working-directory:
+    description: Relative path containing package.json
+    required: false
+    default: .
+  node-version:
+    description: Node.js version to use
+    required: false
+    default: '20'
+  install-command:
+    description: Package manager command to install dependencies
+    required: false
+    default: npm ci
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: ${{ inputs.install-command }}

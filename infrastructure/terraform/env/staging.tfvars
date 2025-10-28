@@ -1,0 +1,5 @@
+project_id              = "your-project-id"
+region                  = "asia-south1"
+environment             = "staging"
+cloud_sql_instance_name = "estate-staging"
+database_password_secret = "projects/<project-id>/secrets/prisma-db-staging"
