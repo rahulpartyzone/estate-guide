@@ -76,7 +76,7 @@ if [[ -n "$PROJECT" ]]; then
 fi
 
 if [[ -n "$ENV_FILE" ]]; then
-  CMD+=(--env-vars-file "$ENV_FILE")
+  CMD+=(--env-vars-from-file "$ENV_FILE")
 fi
 
 if [[ -n "$SECRET_REFS" ]]; then
