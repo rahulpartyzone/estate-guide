@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "estate-guide-main-cc0cb"
+},
+  "targets": {
+    "estate-guide-main": {
+      "hosting": {
+        "estate-guide-staging": [
+          "estate-guide-staging"
+        ],
+        "estate-guide-prod": [
+          "estate-guide-prod"
+        ]
+      }
+    }
   }
 }
