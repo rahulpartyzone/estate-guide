@@ -27,10 +27,8 @@ RUN npm run build
 
 # --- STAGE 3: Production Runner ---
 FROM node:20-alpine AS runner
-# --- THIS IS THE FIX ---
-# Install the missing OpenSSL 1.1 libraries that Prisma requires
-RUN apk add --no-cache openssl1.1-compat
-# --- END FIX ---
+# Ensure OpenSSL runtime libraries are present for Prisma
+RUN apk add --no-cache openssl
 ENV NODE_ENV=production
 WORKDIR /app
 
