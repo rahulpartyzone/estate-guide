@@ -62,7 +62,7 @@ jobs:
       - name: Prepare database url
         if: env.DATABASE_URL == ''
         run: |
-          SECRET=$(gcloud secrets versions access latest --secret="${{ vars.SERVICE_STAGING_DB_SECRET }}")
+          SECRET=$(gcloud secrets versions access latest --secret="${{ vars.PRISMA_STAGING_DB_SECRET }}")
           SECRET=$(echo "$SECRET" | tr -d '\r')
           printf 'DATABASE_URL=%s\n' "$SECRET" >> "$GITHUB_ENV"
 
