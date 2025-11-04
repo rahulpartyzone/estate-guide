@@ -69,7 +69,7 @@ if [[ -z "$SERVICE" || -z "$IMAGE" || -z "$REGION" ]]; then
   exit 1
 fi
 
-CMD=(gcloud run deploy "$SERVICE" --image "$IMAGE" --region "$REGION" --platform "$PLATFORM" --quiet --allow-missing-service)
+CMD=(gcloud run deploy "$SERVICE" --image "$IMAGE" --region "$REGION" --platform "$PLATFORM" --quiet)
 
 if [[ -n "$PROJECT" ]]; then
   CMD+=(--project "$PROJECT")
@@ -84,7 +84,7 @@ if [[ -n "$SECRET_REFS" ]]; then
 fi
 
 if [[ -n "$TRAFFIC" ]]; then
-  CMD+=(--traffic "latest=${TRAFFIC}")
+  CMD+=("--traffic=latest=${TRAFFIC}")
 fi
 
 if [[ "$ALLOW_AUTH" == true ]]; then
