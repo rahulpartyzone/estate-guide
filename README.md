@@ -21,7 +21,7 @@ Prerequisites:
 - PostgreSQL (local) if you want to run the API end-to-end
 
 ### Front-end
-
+ 
 ```bash
 npm install
 npm run dev
