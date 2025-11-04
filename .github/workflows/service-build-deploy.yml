@@ -114,7 +114,7 @@ jobs:
       - name: Generate environment variables file
         run: |
           CONFIG=$(gcloud secrets versions access latest --secret="${{ vars.SERVICE_STAGING_ENV_SECRET }}")
-          echo "$CONFIG" | jq -r 'to_entries[] | "\(.key)=\(.value)"' > service-env.cfg
+          printf '%s' "$CONFIG" | jq -c '.' > service-env.json
 
       - name: Deploy Cloud Run revision
         env:
@@ -125,7 +125,7 @@ jobs:
             --image "$IMAGE" \
             --region "${{ env.REGION }}" \
             --project "$GCP_PROJECT_ID" \
-            --env-vars-file service-env.cfg \
+            --env-vars-file service-env.json \
             --set-secrets "${{ vars.SERVICE_STAGING_SECRET_REFS }}" \
             --allow-unauthenticated
 
@@ -166,7 +166,7 @@ jobs:
       - name: Generate environment variables file
         run: |
           CONFIG=$(gcloud secrets versions access latest --secret="${{ vars.SERVICE_PROD_ENV_SECRET }}")
-          echo "$CONFIG" | jq -r 'to_entries[] | "\(.key)=\(.value)"' > service-env.cfg
+          printf '%s' "$CONFIG" | jq -c '.' > service-env.json
 
       - name: Deploy Cloud Run revision
         env:
@@ -177,6 +177,6 @@ jobs:
             --image "$IMAGE" \
             --region "${{ env.REGION }}" \
             --project "$GCP_PROJECT_ID" \
-            --env-vars-file service-env.cfg \
+            --env-vars-file service-env.json \
             --set-secrets "${{ vars.SERVICE_PROD_SECRET_REFS }}" \
             --allow-unauthenticated

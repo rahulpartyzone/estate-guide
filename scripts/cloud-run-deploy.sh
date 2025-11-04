@@ -7,7 +7,7 @@ Usage: cloud-run-deploy.sh --service <name> --image <image> --region <region> [o
 
 Options:
   --project <id>                 Google Cloud project ID (defaults to gcloud config)
-  --env-vars-file <path>         Path to file containing KEY=VALUE lines passed via --env-vars-file
+  --env-vars-file <path>         Path to YAML/JSON map consumed by gcloud --env-vars-file
   --set-secrets <k=v,...>        Secret references passed directly to --set-secrets
   --args "<extra args>"          Extra flags joined onto the gcloud run deploy command
   --traffic <percent>            Traffic percentage to latest revision (defaults to 100)
@@ -76,7 +76,7 @@ if [[ -n "$PROJECT" ]]; then
 fi
 
 if [[ -n "$ENV_FILE" ]]; then
-  CMD+=(--env-vars-from-file "$ENV_FILE")
+  CMD+=(--env-vars-file "$ENV_FILE")
 fi
 
 if [[ -n "$SECRET_REFS" ]]; then
