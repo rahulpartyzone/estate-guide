@@ -18,7 +18,7 @@ npm ci
 
 2. Copy env file and adjust
 ```
-cp .env.example .env
+cp .env.example .env ssa
 ```
 
 3. Run dev server
