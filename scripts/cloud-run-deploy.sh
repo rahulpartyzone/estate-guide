@@ -10,7 +10,7 @@ Options:
   --env-vars-file <path>         Path to YAML/JSON map consumed by gcloud --env-vars-file
   --set-secrets <k=v,...>        Secret references passed directly to --set-secrets
   --args "<extra args>"          Extra flags joined onto the gcloud run deploy command
-  --traffic <percent>            Traffic percentage to latest revision (defaults to 100)
+  --traffic <spec>               Traffic specification passed to gcloud (e.g. "latest=100")
   --platform <type>              Cloud Run platform, defaults to managed
   --allow-unauthenticated        Allow unauthenticated invocations
   --help                         Show this help message
@@ -28,7 +28,7 @@ PROJECT=""
 ENV_FILE=""
 SECRET_REFS=""
 EXTRA_ARGS=""
-TRAFFIC="100"
+TRAFFIC=""
 PLATFORM="managed"
 ALLOW_AUTH=false
 
@@ -84,7 +84,7 @@ if [[ -n "$SECRET_REFS" ]]; then
 fi
 
 if [[ -n "$TRAFFIC" ]]; then
-  CMD+=("--traffic=latest=${TRAFFIC}")
+  CMD+=(--traffic "$TRAFFIC")
 fi
 
 if [[ "$ALLOW_AUTH" == true ]]; then
