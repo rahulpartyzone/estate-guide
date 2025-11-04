@@ -77,6 +77,7 @@ fi
 
 if [[ -n "$ENV_FILE" ]]; then
   CMD+=(--env-vars-file "$ENV_FILE")
+  CMD+=(--remove-secrets "DATABASE_URL")
 fi
 
 if [[ -n "$SECRET_REFS" ]]; then
