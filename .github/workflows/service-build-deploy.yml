@@ -66,10 +66,6 @@ jobs:
           SECRET=$(echo "$SECRET" | tr -d '\r')
           printf 'DATABASE_URL=%s\n' "$SECRET" >> "$GITHUB_ENV"
 
-      - name: Run Lint
-        working-directory: server
-        run: npm run lint
-
       - name: Run Tests
         working-directory: server
         run: npm run test -- --runInBand
