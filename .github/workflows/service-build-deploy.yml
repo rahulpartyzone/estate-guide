@@ -79,6 +79,7 @@ jobs:
 
   deploy_staging:
     name: Deploy Staging
+    needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     environment:
