@@ -115,6 +115,14 @@ jobs:
         run: |
           CONFIG=$(gcloud secrets versions access latest --secret="${{ vars.SERVICE_STAGING_ENV_SECRET }}")
           printf '%s' "$CONFIG" | jq -c '.' > service-env.json
+          
+      - name: Exorcise the Ghost Secret
+        run: |
+          gcloud run services update estate-guide-staging \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --region "${{ env.REGION }}" \
+            --remove-secrets "DATABASE_URL" \
+            --quiet
 
       - name: Deploy Cloud Run revision
         env:
