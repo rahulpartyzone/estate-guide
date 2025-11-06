@@ -44,7 +44,7 @@ COPY --from=builder /app/dist ./dist
 # and we just add the generated client bits on top.
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
-
+COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
 
 # Cloud Run uses PORT env var
 ENV PORT=8080
