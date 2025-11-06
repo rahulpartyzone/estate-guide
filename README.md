@@ -15,7 +15,7 @@ infrastructure/      # Terraform scaffold for Google Cloud resources
 ## Local development
 
 Prerequisites:
-
+ 
 - Node.js 20+
 - npm 10+
 - PostgreSQL (local) if you want to run the API end-to-end
