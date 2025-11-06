@@ -50,4 +50,4 @@ COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/clie
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["node", "dist/main.js"]
+CMD ["npm", "run", "start:migrate:prod"]
