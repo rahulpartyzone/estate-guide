@@ -34,7 +34,7 @@ Spin up a local Postgres + pgAdmin using the provided `docker-compose.dev.yml`:
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-Connection details (matches `.env.example` suggestion):
+Connection details (matches `.env.example` suggestion): 
 
 - Host: localhost
 - Port: 5432
