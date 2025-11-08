@@ -14,7 +14,7 @@ infrastructure/      # Terraform scaffold for Google Cloud resources
 
 ## Local development
 
-Prerequisites:
+Prerequisites: 
  
 - Node.js 20+
 - npm 10+
