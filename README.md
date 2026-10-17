@@ -1,6 +1,8 @@
 # Estate Guide Platform
 
-Full-stack application for showcasing real-estate projects. The front-end is a Vite + React SPA, while the backend is a NestJS service backed by PostgreSQL (Cloud SQL) and Prisma ORM.
+Full-stack application for showcasing real-estate projects. The front-end is a Vite + React SPA, while the backend is a NestJS service backed by PostgreSQL and Prisma ORM.
+
+> **Production now runs on Vercel + Neon + Cloudflare R2.** See [DEPLOY-VERCEL.md](./DEPLOY-VERCEL.md). The Google Cloud / Firebase pipeline described under *CI/CD overview* below is kept for reference and its deploy workflows only run when started by hand.
 
 ## Repository layout
 

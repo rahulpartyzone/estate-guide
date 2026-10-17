@@ -5,12 +5,11 @@ import * as argon2 from 'argon2';
 import { GcsService } from '../storage/gcs.service';
 import { Msg91Service } from '../msg91/msg91.service';
 
-// Simple in-memory IP/contact throttling (additional to DB based throttle)
+// Per-IP OTP throttle. Counted from the BrochureOtp table so the limit holds across all
+// serverless instances (an in-memory counter only sees the requests that hit one instance).
 const ipWindowMs = (Number(process.env.OTP_RATE_IP_WINDOW_SECONDS) || 600) * 1000;
 const ipMax = Number(process.env.OTP_RATE_IP_MAX) || 10;
-interface RateEntry { count: number; start: number }
-const ipMap = new Map<string, RateEntry>();
-const inflightSend = new Set<string>(); // key: `${propertyId}:${contact}`
+const inflightSend = new Set<string>(); // drops duplicate rapid clicks on one instance; key: `${propertyId}:${contact}`
 
 @Injectable()
 export class LeadsService {
@@ -63,24 +62,19 @@ export class LeadsService {
     const key = `${propertyId}:${contact}`;
     if (inflightSend.has(key)) return; // drop duplicate rapid clicks
     inflightSend.add(key);
-    // IP throttle
-    if (ip) {
-      const now = Date.now();
-      const entry = ipMap.get(ip);
-      if (!entry || now - entry.start > ipWindowMs) {
-        ipMap.set(ip, { count: 1, start: now });
-      } else {
-  if (entry.count >= ipMax) throw new HttpException('Too many requests', HttpStatus.TOO_MANY_REQUESTS);
-        entry.count++;
-      }
-    }
-    const count = await this.recentOtpCount(propertyId, contact);
-    if (count >= 3) throw new BadRequestException('Too many OTP requests');
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const hash = await argon2.hash(otp);
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    await this.prisma.brochureOtp.create({ data: { propertyId, contact, otpHash: hash, expiresAt } });
+    // Released in `finally`, so a rejected request can't leave this contact blocked until a restart.
     try {
+      if (ip) {
+        const since = new Date(Date.now() - ipWindowMs);
+        const ipCount = await this.prisma.brochureOtp.count({ where: { ip, createdAt: { gte: since } } });
+        if (ipCount >= ipMax) throw new HttpException('Too many requests', HttpStatus.TOO_MANY_REQUESTS);
+      }
+      const count = await this.recentOtpCount(propertyId, contact);
+      if (count >= 3) throw new BadRequestException('Too many OTP requests');
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const hash = await argon2.hash(otp);
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      await this.prisma.brochureOtp.create({ data: { propertyId, contact, ip: ip || null, otpHash: hash, expiresAt } });
       await this.msg91.sendOtp(contact, otp);
     } finally {
       inflightSend.delete(key);

@@ -195,7 +195,23 @@ export const api = {
     const res = await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': contentType } });
     if (!res.ok) throw new Error('Upload failed');
   },
+  // Uploads a file and returns { id, url, filename, mimeType, size }.
+  // With object storage (R2) configured, the browser sends the file straight to the bucket using a
+  // presigned URL, so large images and brochures avoid Vercel's 4.5 MB request limit. Without it
+  // (local dev), the API answers 501 and the file goes through the API as a multipart upload.
   async uploadFileDirect(file: File) {
+    const mimeType = file.type || 'application/octet-stream';
+    let target: { key: string; uploadUrl: string; headers?: Record<string, string> } | null = null;
+    try {
+      target = await request<any>(`/files/upload-url`, { method: 'POST', body: JSON.stringify({ filename: file.name, mimeType, size: file.size }) });
+    } catch (e: any) {
+      if (e?.status !== 501) throw new Error(e?.message || 'Upload failed');
+    }
+    if (target) {
+      const put = await fetch(target.uploadUrl, { method: 'PUT', body: file, headers: target.headers || { 'Content-Type': mimeType } });
+      if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+      return request<any>(`/files/complete`, { method: 'POST', body: JSON.stringify({ key: target.key, filename: file.name, mimeType }) });
+    }
     const form = new FormData();
     form.append('file', file);
     const token = sessionStorage.getItem('accessToken');

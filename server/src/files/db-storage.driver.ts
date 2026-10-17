@@ -26,7 +26,7 @@ export class DbStorageDriver implements StorageDriver {
 
   async get(id: string) {
     const rec = await this.prisma.fileAsset.findUnique({ where: { id } });
-    if (!rec) return null;
-    return { buffer: Buffer.from(rec.data as any), filename: rec.filename, mimeType: rec.mimeType, size: rec.size };
+    if (!rec || !rec.data) return null;
+    return { buffer: Buffer.from(rec.data), filename: rec.filename, mimeType: rec.mimeType, size: rec.size };
   }
 }

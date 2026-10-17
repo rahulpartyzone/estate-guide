@@ -1,10 +1,13 @@
 generator client {
   provider = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  // native = local dev; linux-musl = Docker (Alpine); rhel-openssl-3.0.x = Vercel Functions
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
+  // In production this is Neon's pooled ("-pooler") connection string. Migrations run over the
+  // direct connection instead: scripts/vercel-build.cjs swaps in DIRECT_URL for `prisma migrate deploy`.
   url      = env("DATABASE_URL")
 }
 
@@ -306,11 +309,14 @@ model BrochureOtp {
   propertyId String
   property   Property  @relation(fields: [propertyId], references: [id])
   contact    String // phone or email
+  ip         String? // requester IP, used for the per-IP rate limit (shared across all server instances)
   otpHash    String
   expiresAt  DateTime
   attempts   Int       @default(0)
   verifiedAt DateTime?
   createdAt  DateTime  @default(now())
+
+  @@index([ip, createdAt])
 }
 
 model Wishlist {
@@ -391,14 +397,18 @@ model Executive {
   @@index([sortOrder])
 }
 
-// Generic binary file storage for DB storage mode (images, brochures, etc.)
+// Uploaded file record (images, brochures, etc.).
+// With object storage (Cloudflare R2) the bytes live in the bucket at `storageKey` and `url` is the public URL;
+// `data` is only set for files stored in the database (local dev without R2, or legacy rows not yet moved).
 model FileAsset {
-  id        String   @id @default(uuid())
-  filename  String
-  mimeType  String
-  size      Int
-  checksum  String?  // sha256
-  data      Bytes
+  id         String   @id @default(uuid())
+  filename   String
+  mimeType   String
+  size       Int
+  checksum   String?  // sha256
+  data       Bytes?
+  storageKey String?
+  url        String?
   width     Int?
   height    Int?
   originalId String?

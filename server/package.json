@@ -9,6 +9,8 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "build": "nest build",
+    "postinstall": "prisma generate",
+    "vercel-build": "node scripts/vercel-build.cjs",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "generate": "prisma generate",
@@ -21,6 +23,7 @@
     "list:users": "ts-node scripts/list-users.ts",
     "users:query": "ts-node scripts/query-users.ts",
     "backfill:file-urls": "ts-node scripts/backfill-file-urls.ts",
+    "files:copy-to-r2": "ts-node scripts/copy-files-to-r2.ts",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage"

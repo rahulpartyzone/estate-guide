@@ -1,15 +1,8 @@
 name: Service Build & Deploy
 
+# Deploys moved to Vercel (see DEPLOY-VERCEL.md). This Google Cloud workflow only runs when started by hand.
 on:
-  pull_request:
-    branches:
-      - '**'
-  push:
-    branches:
-      - develop
-      - main
-    tags:
-      - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: read

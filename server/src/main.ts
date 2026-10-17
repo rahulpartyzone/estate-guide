@@ -1,12 +1,17 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Behind Vercel (and the frontend's /api rewrite) every request arrives through a proxy.
+  // Trusting X-Forwarded-For makes req.ip the visitor's address, which the OTP rate limit relies on.
+  app.set('trust proxy', true);
 
   // Allow embedding static resources (like images) from this API on different origins (e.g., Vite dev server)
   app.use(

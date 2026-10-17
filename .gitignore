@@ -30,5 +30,7 @@ dist-ssr
 # Secrets and local certificates (never commit)
 .env
 server/.env
+.env.migrate
+server/.env.migrate
 cert/
 *.pem

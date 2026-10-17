@@ -3,6 +3,8 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
+# postinstall runs `prisma generate`, which needs the schema
+COPY prisma ./prisma
 RUN npm ci --no-audit --no-fund
 
 FROM node:20-alpine AS builder
