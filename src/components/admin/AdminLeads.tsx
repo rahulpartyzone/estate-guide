@@ -10,7 +10,7 @@ import { api } from '@/lib/api';
 export default function AdminLeads() {
   const [loading, setLoading] = useState(false);
   const [leads, setLeads] = useState<any[]>([]);
-  const [type, setType] = useState<string>('brochure'); // 'all' | 'brochure' | 'site_visit' | 'info'
+  const [type, setType] = useState<string>('all'); // 'all' | 'brochure' | 'site_visit' | 'info' | 'preference'
   const [status, setStatus] = useState<string>('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -59,6 +59,7 @@ export default function AdminLeads() {
               <SelectItem value="brochure">Brochure</SelectItem>
               <SelectItem value="site_visit">Site Visit</SelectItem>
               <SelectItem value="info">Info</SelectItem>
+              <SelectItem value="preference">Preference</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={exportCsv} className="gap-2" size="sm"><Download className="h-4 w-4" /> Export (6m)</Button>
@@ -75,12 +76,14 @@ export default function AdminLeads() {
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Preference</TableHead>
+                <TableHead>Loan</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></TableCell></TableRow>
               ) : leads.length ? (
                 leads.map((l) => (
                   <TableRow key={l.id}>
@@ -90,11 +93,13 @@ export default function AdminLeads() {
                     <TableCell>{l.name || '-'}</TableCell>
                     <TableCell>{l.phone || '-'}</TableCell>
                     <TableCell>{l.email || '-'}</TableCell>
+                    <TableCell className="text-xs">{[l.preferredPropertyType, l.preferredBudgetRange].filter(Boolean).join(' • ') || '-'}</TableCell>
+                    <TableCell>{typeof l.needsHomeLoanAssistance === 'boolean' ? (l.needsHomeLoanAssistance ? 'Yes' : 'No') : '-'}</TableCell>
                     <TableCell className="capitalize">{l.status || '-'}</TableCell>
                   </TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">No leads</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">No leads</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

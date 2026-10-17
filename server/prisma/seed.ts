@@ -4,16 +4,198 @@ import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
+const defaultRoles = [
+  { name: 'ConsoleAdmin', description: 'Primary admin role for onboarding and RBAC-managed access', isSystem: true },
+  { name: 'SuperAdmin', description: 'Full access including RBAC and menu configuration', isSystem: true },
+  { name: 'Admin', description: 'Administrative access to business modules', isSystem: true },
+  { name: 'Editor', description: 'Can manage content modules', isSystem: true },
+  { name: 'Viewer', description: 'Read-only dashboard access', isSystem: true },
+];
+
+const defaultPermissionKeys = [
+  'dashboard.read',
+  'projects.read',
+  'projects.write',
+  'builders.read',
+  'builders.write',
+  'news.read',
+  'news.write',
+  'testimonials.read',
+  'testimonials.write',
+  'amenities.read',
+  'amenities.write',
+  'leads.read',
+  'subscribers.read',
+  'company.read',
+  'company.write',
+  'users.read',
+  'users.write',
+  'rbac.manage',
+  'settings.read',
+  'settings.write',
+];
+
+const defaultMenus = [
+  { key: 'projects', label: 'Projects', path: '/admin/projects', icon: 'Building2', sortOrder: 10 },
+  { key: 'builders', label: 'Builders', path: '/admin/builders', icon: 'HardHat', sortOrder: 20 },
+  { key: 'news', label: 'News', path: '/admin/news', icon: 'Newspaper', sortOrder: 30 },
+  { key: 'company', label: 'Company', path: '/admin/company', icon: 'Building', sortOrder: 40 },
+  { key: 'testimonials', label: 'Testimonials', path: '/admin/testimonials', icon: 'MessageSquare', sortOrder: 50 },
+  { key: 'leads', label: 'Leads', path: '/admin/leads', icon: 'Users', sortOrder: 60 },
+  { key: 'subscribers', label: 'Subscribers', path: '/admin/subscribers', icon: 'Mail', sortOrder: 70 },
+  { key: 'users', label: 'Users', path: '/admin/users', icon: 'User', sortOrder: 80 },
+  { key: 'roles', label: 'Roles', path: '/admin/roles', icon: 'Shield', sortOrder: 90 },
+  { key: 'change-password', label: 'Change Password', path: '/admin/change-password', icon: 'KeyRound', sortOrder: 95 },
+  { key: 'settings', label: 'Settings', path: '/admin/settings', icon: 'Settings', sortOrder: 100 },
+  { key: 'amenities', label: 'Amenities', path: '/admin/amenities', icon: 'Sparkles', sortOrder: 110 },
+];
+
 async function main() {
   // Idempotent admin user
-  const adminEmail = 'admin@local';
+  const adminEmail = 'admin@local.com';
   const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (!existingAdmin) {
     const passwordHash = await argon2.hash('admin123');
     await prisma.user.create({ data: { email: adminEmail, password: passwordHash, role: 'ADMIN' } });
-    console.log('Created admin user admin@local / admin123');
+    console.log('Created admin user admin@local.com / admin123');
   } else {
     console.log('Admin user already exists');
+  }
+
+  const roleMap = new Map<string, { id: string; name: string }>();
+  for (const role of defaultRoles) {
+    const upserted = await prisma.role.upsert({
+      where: { name: role.name },
+      update: { description: role.description, isSystem: role.isSystem },
+      create: role,
+      select: { id: true, name: true },
+    });
+    roleMap.set(role.name, upserted);
+  }
+
+  for (const key of defaultPermissionKeys) {
+    await prisma.permission.upsert({
+      where: { key },
+      update: {},
+      create: { key, description: key },
+    });
+  }
+
+  for (const menu of defaultMenus) {
+    await prisma.menuItem.upsert({
+      where: { key: menu.key },
+      update: {
+        label: menu.label,
+        path: menu.path,
+        icon: menu.icon,
+        sortOrder: menu.sortOrder,
+        isEnabled: true,
+      },
+      create: {
+        key: menu.key,
+        label: menu.label,
+        path: menu.path,
+        icon: menu.icon,
+        sortOrder: menu.sortOrder,
+        isEnabled: true,
+      },
+    });
+  }
+
+  const adminUser = await prisma.user.findUnique({ where: { email: adminEmail }, select: { id: true } });
+  const consoleAdminRole = roleMap.get('ConsoleAdmin');
+  if (adminUser && consoleAdminRole) {
+    await prisma.userRole.deleteMany({ where: { userId: adminUser.id } });
+    await prisma.userRole.create({
+      data: {
+        userId: adminUser.id,
+        roleId: consoleAdminRole.id,
+      },
+    });
+    await prisma.userRole.deleteMany({
+      where: {
+        roleId: consoleAdminRole.id,
+        userId: { not: adminUser.id },
+      },
+    });
+  }
+
+  const allPermissionIds = await prisma.permission.findMany({ select: { id: true, key: true } });
+  const allMenuItems = await prisma.menuItem.findMany({ select: { id: true, key: true } });
+  const allPermissionIdSet = new Set(allPermissionIds.map((p) => p.id));
+
+  const adminPermissionKeys = [
+    'dashboard.read',
+    'projects.read', 'projects.write',
+    'builders.read', 'builders.write',
+    'news.read', 'news.write',
+    'testimonials.read', 'testimonials.write',
+    'amenities.read', 'amenities.write',
+    'leads.read', 'subscribers.read',
+    'company.read', 'company.write',
+    'users.read',
+    'settings.read', 'settings.write',
+  ];
+  const editorPermissionKeys = [
+    'dashboard.read',
+    'projects.read', 'projects.write',
+    'builders.read', 'builders.write',
+    'news.read', 'news.write',
+    'testimonials.read', 'testimonials.write',
+    'amenities.read', 'amenities.write',
+    'company.read',
+    'settings.read',
+  ];
+  const viewerPermissionKeys = [
+    'dashboard.read',
+    'projects.read',
+    'builders.read',
+    'news.read',
+    'testimonials.read',
+    'amenities.read',
+    'leads.read',
+    'subscribers.read',
+    'company.read',
+    'users.read',
+    'settings.read',
+  ];
+
+  const permissionMap = new Map(allPermissionIds.map((p) => [p.key, p.id]));
+  const rolePermissions: Record<string, string[]> = {
+    ConsoleAdmin: allPermissionIds.map((p) => p.id),
+    SuperAdmin: allPermissionIds.map((p) => p.id),
+    Admin: adminPermissionKeys.map((k) => permissionMap.get(k)).filter((id): id is string => Boolean(id)),
+    Editor: editorPermissionKeys.map((k) => permissionMap.get(k)).filter((id): id is string => Boolean(id)),
+    Viewer: viewerPermissionKeys.map((k) => permissionMap.get(k)).filter((id): id is string => Boolean(id)),
+  };
+
+  for (const [roleName, rolePermIds] of Object.entries(rolePermissions)) {
+    const role = roleMap.get(roleName);
+    if (!role) continue;
+
+    await prisma.rolePermission.deleteMany({
+      where: {
+        roleId: role.id,
+        permissionId: { notIn: rolePermIds.length ? rolePermIds : ['__none__'] },
+      },
+    });
+
+    for (const permissionId of rolePermIds) {
+      if (!allPermissionIdSet.has(permissionId)) continue;
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: role.id, permissionId } },
+        update: {},
+        create: { roleId: role.id, permissionId },
+      });
+    }
+
+    for (const menu of allMenuItems) {
+      await prisma.roleMenuAccess.upsert({
+        where: { roleId_menuItemId: { roleId: role.id, menuItemId: menu.id } },
+        update: { canView: true },
+        create: { roleId: role.id, menuItemId: menu.id, canView: true },
+      });
+    }
   }
 
   // Builder

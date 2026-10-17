@@ -21,14 +21,26 @@ async function bootstrap() {
   // Set CORS_ORIGIN to a comma-separated list. Optionally set CORS_ALLOW_ALL=true ONLY for local dev.
   const allowAll = (process.env.CORS_ALLOW_ALL || 'false').toLowerCase() === 'true';
   const originEnv = process.env.CORS_ORIGIN || 'http://localhost:5173';
-  const allowedOrigins = new Set(originEnv.split(',').map(o => o.trim()).filter(Boolean));
+  const originRules = originEnv.split(',').map((value) => value.trim()).filter(Boolean);
+  const allowedOrigins = new Set(originRules.filter((rule) => !rule.startsWith('*.')));
+  const wildcardDomains = originRules.filter((rule) => rule.startsWith('*.')).map((rule) => rule.slice(2));
+
+  const isAllowedOrigin = (origin: string) => {
+    if (allowedOrigins.has(origin)) return true;
+    try {
+      const host = new URL(origin).hostname;
+      return wildcardDomains.some((domain) => host === domain || host.endsWith(`.${domain}`));
+    } catch {
+      return false;
+    }
+  };
 
   app.enableCors({
     origin: (origin, cb) => {
       if (!origin) return cb(null, true); // non-browser or same-origin
       if (allowAll) return cb(null, origin);
-      if (allowedOrigins.has(origin)) return cb(null, origin);
-      return cb(new Error('Not allowed by CORS: ' + origin), false);
+      if (isAllowedOrigin(origin)) return cb(null, origin);
+      return cb(null, false);
     },
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

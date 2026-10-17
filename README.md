@@ -37,6 +37,39 @@ npx prisma migrate deploy
 npm run start:dev
 ```
 
+### Cloudflare SSL integration (Docker)
+
+For HTTPS via Cloudflare, this repo includes:
+
+- an `nginx` reverse proxy that serves local HTTPS using certs from `cert/cert.pem` and `cert/key.pem`
+- an optional `cloudflared` service in `docker-compose.local.yml`
+
+1. Create a Cloudflare Tunnel in your Cloudflare Zero Trust dashboard and copy the tunnel token.
+2. Set the token in your shell before starting compose:
+
+```bash
+export CF_TUNNEL_TOKEN=<your_tunnel_token>
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:CF_TUNNEL_TOKEN="<your_tunnel_token>"
+```
+
+3. Start stack with the Cloudflare profile:
+
+```bash
+docker compose -f docker-compose.local.yml --profile cloudflare up -d --build
+```
+
+4. Access locally:
+
+- HTTP: `http://localhost:5173`
+- HTTPS (certificate from `cert/`): `https://localhost:5443`
+
+Cloudflare will terminate SSL at the edge and tunnel traffic to your local `nginx` proxy.
+
 ## CI/CD overview
 
 The repository ships with four GitHub Actions workflows:

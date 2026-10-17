@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -24,12 +25,99 @@ enum ProjectStatus {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      String // ADMIN | EDITOR
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String        @id @default(uuid())
+  email          String        @unique
+  password       String
+  role           String        // ADMIN | EDITOR (legacy compatibility)
+  name           String?
+  isActive       Boolean       @default(true)
+  lastLoginAt    DateTime?
+  userRoles      UserRole[]
+  invitesCreated InviteToken[] @relation("InviteCreatedBy")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  isSystem        Boolean          @default(false)
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+  menuAccess      RoleMenuAccess[]
+  inviteTokens    InviteToken[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  key             String           @unique
+  description     String?
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@id([userId, roleId])
+}
+
+model MenuItem {
+  id         String           @id @default(uuid())
+  key        String           @unique
+  label      String
+  path       String
+  icon       String?
+  sortOrder  Int              @default(0)
+  isEnabled  Boolean          @default(true)
+  roleAccess RoleMenuAccess[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+}
+
+model RoleMenuAccess {
+  roleId      String
+  menuItemId  String
+  canView     Boolean  @default(true)
+  role        Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  updatedAt   DateTime @updatedAt
+
+  @@id([roleId, menuItemId])
+}
+
+model InviteToken {
+  id          String    @id @default(uuid())
+  token       String    @unique
+  email       String
+  roleId      String
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  invitedById String?
+  invitedBy   User?     @relation("InviteCreatedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
 }
 
 model Builder {
@@ -42,6 +130,7 @@ model Builder {
   phone           String?
   email           String?
   logoUrl         String?
+  heroImageUrl    String?
   properties      Property[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
@@ -66,8 +155,13 @@ model Property {
   sizeMin             Int?
   sizeMax             Int?
   sizeUnit            String            @default("sqft")
+  unitSizeRange       String?
   bedrooms            Int?
   bathrooms           Int?
+  totalUnits          Int?
+  towersBlocks        String?
+  unitVariants        String?
+  possessionTime      String?
   completionDate      DateTime?
   lat                 Float?
   lng                 Float?
@@ -155,6 +249,28 @@ model Testimonial {
   updatedAt DateTime @updatedAt
 }
 
+model NewsArticle {
+  id             String   @id @default(uuid())
+  title          String
+  slug           String   @unique
+  excerpt        String
+  content        String
+  imageUrl       String?
+  category       String?
+  authorName     String?
+  sourceUrl      String?
+  tags           String[]
+  published      Boolean  @default(false)
+  publishedAt    DateTime?
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([published, publishedAt])
+  @@index([createdAt])
+}
+
 model Subscriber {
   id               String    @id @default(uuid())
   email            String    @unique
@@ -169,11 +285,16 @@ model Lead {
   id            String    @id @default(uuid())
   propertyId    String?
   property      Property? @relation(fields: [propertyId], references: [id])
-  type          String // site_visit|info|brochure
+  type          String // site_visit|info|brochure|preference
   name          String
   email         String
   phone         String
   message       String?
+  preferredPropertyType String?
+  preferredBudgetRange  String?
+  preferredLocation     String?
+  needsHomeLoanAssistance Boolean?
+  sourcePage            String?
   preferredDate DateTime?
   status        String    @default("new") // new|contacted|closed|invalid
   createdAt     DateTime  @default(now())
@@ -216,6 +337,58 @@ model Neighborhood {
   description String?
   lat         Float?
   lng         Float?
+}
+
+model SiteProfile {
+  id          String      @id @default(uuid())
+  companyName String
+  reraNumber  String?
+  tagline     String?
+  description String?
+  aboutHeroImageUrl String?
+  landingHeroImageUrl String?
+  projectsHeroImageUrl String?
+  buildersHeroImageUrl String?
+  newsHeroImageUrl String?
+  landingHeroTitlePrefix String?
+  landingHeroTitleHighlight String?
+  landingHeroDescription String?
+  landingHeroStat1Value String?
+  landingHeroStat1Label String?
+  landingHeroStat2Value String?
+  landingHeroStat2Label String?
+  landingHeroStat3Value String?
+  landingHeroStat3Label String?
+  linkedinUrl String?
+  facebookUrl String?
+  instagramUrl String?
+  googleUrl String?
+  whatsappNumber String?
+  phone       String?
+  email       String?
+  website     String?
+  address     String?
+  logoUrl     String?
+  headerLogoUrl String?
+  executives  Executive[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Executive {
+  id            String      @id @default(uuid())
+  siteProfileId String
+  siteProfile   SiteProfile @relation(fields: [siteProfileId], references: [id], onDelete: Cascade)
+  name          String
+  role          String
+  bio           String?
+  imageUrl      String?
+  sortOrder     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([siteProfileId])
+  @@index([sortOrder])
 }
 
 // Generic binary file storage for DB storage mode (images, brochures, etc.)

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Loader2, Upload, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { absolutizeApiUrl } from "@/lib/url";
 
 interface BuilderRecord {
   id: string;
@@ -20,23 +21,16 @@ interface BuilderRecord {
   phone?: string;
   email?: string;
   logoUrl?: string;
+  heroImageUrl?: string;
 }
 
 type FormState = Omit<BuilderRecord, 'id'>;
 
-const emptyForm: FormState = { name: '', description: '', experienceYears: undefined, rating: undefined, website: '', phone: '', email: '', logoUrl: '' };
+const emptyForm: FormState = { name: '', description: '', experienceYears: undefined, rating: undefined, website: '', phone: '', email: '', logoUrl: '', heroImageUrl: '' };
 
 const AdminBuilders = () => {
   const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
-  let API_ORIGIN = 'http://localhost:8080';
-  try { API_ORIGIN = new URL(RAW_API_BASE).origin; } catch {}
-  const absolutize = (u?: string) => {
-    if (!u) return '';
-    const url = u.trim();
-    if (/^https?:\/\//i.test(url)) return url;
-    if (url.startsWith('/api/')) return `${API_ORIGIN}${url}`;
-    return url;
-  };
+  const absolutize = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
   const { toast } = useToast();
   const [items, setItems] = useState<BuilderRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,6 +40,7 @@ const AdminBuilders = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [heroFile, setHeroFile] = useState<File | null>(null);
 
   const load = async () => {
     setLoading(true); setError(null);
@@ -62,6 +57,7 @@ const AdminBuilders = () => {
         phone: b.phone || '',
         email: b.email || '',
         logoUrl: absolutize(b.logoUrl || ''),
+        heroImageUrl: absolutize(b.heroImageUrl || ''),
       }));
       setItems(mapped);
     } catch (e: any) {
@@ -75,6 +71,7 @@ const AdminBuilders = () => {
     setEditingId(null);
     setForm(emptyForm);
     setLogoFile(null);
+    setHeroFile(null);
     setIsDialogOpen(true);
   };
   const openEdit = (id: string) => {
@@ -90,8 +87,10 @@ const AdminBuilders = () => {
       phone: current.phone,
       email: current.email,
       logoUrl: current.logoUrl,
+      heroImageUrl: current.heroImageUrl,
     });
     setLogoFile(null);
+    setHeroFile(null);
     setIsDialogOpen(true);
   };
 
@@ -111,17 +110,23 @@ const AdminBuilders = () => {
     if (form.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) errs.email = 'Invalid email';
     setFieldErrors(errs); return Object.keys(errs).length === 0;
   };
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
     setSaving(true);
     try {
       // If a logo file is selected, upload it first
       let finalLogoUrl = form.logoUrl || undefined;
+      let finalHeroImageUrl = form.heroImageUrl || undefined;
       if (logoFile) {
         await api.ensureAdmin();
         const stored = await api.uploadFileDirect(logoFile);
         finalLogoUrl = stored.url;
+      }
+      if (heroFile) {
+        await api.ensureAdmin();
+        const stored = await api.uploadFileDirect(heroFile);
+        finalHeroImageUrl = stored.url;
       }
       const payload: any = {
         name: form.name?.trim(),
@@ -132,10 +137,11 @@ const AdminBuilders = () => {
         phone: form.phone || undefined,
         email: form.email || undefined,
         logoUrl: finalLogoUrl,
+        heroImageUrl: finalHeroImageUrl,
       };
       if (editingId) {
         await api.updateBuilder(editingId, payload);
-        setItems(list => list.map(i => i.id === editingId ? { ...i, ...payload, logoUrl: absolutize(payload.logoUrl) } : i));
+        setItems(list => list.map(i => i.id === editingId ? { ...i, ...payload, logoUrl: absolutize(payload.logoUrl), heroImageUrl: absolutize(payload.heroImageUrl) } : i));
         toast({ title: 'Builder updated' });
       } else {
         const created = await api.createBuilder(payload);
@@ -149,6 +155,7 @@ const AdminBuilders = () => {
           phone: created.phone || '',
           email: created.email || '',
           logoUrl: absolutize(created.logoUrl || ''),
+          heroImageUrl: absolutize(created.heroImageUrl || ''),
         };
         setItems(list => [mapped, ...list]);
         toast({ title: 'Builder created' });
@@ -157,6 +164,7 @@ const AdminBuilders = () => {
       setEditingId(null);
       setForm(emptyForm);
       setLogoFile(null);
+      setHeroFile(null);
       setFieldErrors({});
     } catch (e: any) {
       toast({ title: 'Save failed', description: e?.message || 'Unknown error', variant: 'destructive' });
@@ -244,7 +252,7 @@ const AdminBuilders = () => {
                   {fieldErrors.website && <p className="text-xs text-red-500 mt-1">{fieldErrors.website}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="logoUrl">Logo</Label>
+                  <Label htmlFor="logoUrl">Logo (Recommended: 400×400 px)</Label>
                   <div className="flex items-center gap-2 flex-wrap">
                     <label className="border rounded px-3 py-2 flex items-center gap-2 cursor-pointer text-sm hover:bg-secondary/60">
                       <Upload className="h-4 w-4" /> {logoFile ? 'Replace Logo' : (form.logoUrl ? 'Replace Logo' : 'Upload Logo')}
@@ -254,7 +262,20 @@ const AdminBuilders = () => {
                     {!logoFile && form.logoUrl && <span className="text-xs text-green-600">Existing</span>}
                     {logoFile && <button type="button" onClick={()=>setLogoFile(null)} className="text-xs text-red-500">Remove</button>}
                   </div>
-                  <Input id="logoUrl" type="url" value={form.logoUrl ?? ''} onChange={e => handleChange('logoUrl', e.target.value)} placeholder="Or paste logo URL (optional)" />
+                  <Input id="logoUrl" type="text" value={form.logoUrl ?? ''} onChange={e => handleChange('logoUrl', e.target.value)} placeholder="Or paste logo URL (optional)" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="heroImageUrl">Hero Image (Recommended: 1920×1080 px)</Label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label className="border rounded px-3 py-2 flex items-center gap-2 cursor-pointer text-sm hover:bg-secondary/60">
+                      <Upload className="h-4 w-4" /> {heroFile ? 'Replace Hero Image' : (form.heroImageUrl ? 'Replace Hero Image' : 'Upload Hero Image')}
+                      <input type="file" accept="image/*" className="hidden" onChange={e=>setHeroFile(e.target.files?.[0]||null)} />
+                    </label>
+                    {heroFile && <span className="text-xs text-muted-foreground truncate max-w-[180px]">{heroFile.name}</span>}
+                    {!heroFile && form.heroImageUrl && <span className="text-xs text-green-600">Existing</span>}
+                    {heroFile && <button type="button" onClick={()=>setHeroFile(null)} className="text-xs text-red-500">Remove</button>}
+                  </div>
+                  <Input id="heroImageUrl" type="text" value={form.heroImageUrl ?? ''} onChange={e => handleChange('heroImageUrl', e.target.value)} placeholder="Or paste hero image URL (optional)" />
                 </div>
                 <Button type="submit" className="w-full" disabled={saving}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingId ? 'Update Builder' : 'Create Builder')}

@@ -10,6 +10,7 @@ export class BuilderCreateDto {
   @IsOptional() @IsString() email?: string;
   // Allow absolute http(s) or leading slash API paths
   @IsOptional() @Matches(/^(https?:\/\/|\/)/, { message: 'logoUrl must be an absolute URL or start with /' }) logoUrl?: string;
+  @IsOptional() @Matches(/^(https?:\/\/|\/)/, { message: 'heroImageUrl must be an absolute URL or start with /' }) heroImageUrl?: string;
 }
 
 export class BuilderUpdateDto extends BuilderCreateDto {}

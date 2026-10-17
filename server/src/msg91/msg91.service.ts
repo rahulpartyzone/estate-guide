@@ -13,6 +13,7 @@ export class Msg91Service {
   private get config() {
     return {
       authKey: process.env.MSG91_AUTH_KEY,
+      tokenAuth: process.env.MSG91_TOKEN_AUTH,
       sender: process.env.MSG91_SENDER_ID || 'ESTATE',
       templateId: process.env.MSG91_TEMPLATE_ID || '',
       otpTtlSeconds: Number(process.env.OTP_TTL_SECONDS) || 300,
@@ -79,30 +80,54 @@ export class Msg91Service {
    * an access token to be validated server-side.
    */
   async verifyWidgetAccessToken(accessToken: string) {
-    const { authKey, debug } = this.config;
-    if (!authKey) {
-      this.logger.warn('MSG91_AUTH_KEY not set; cannot verify widget access token');
+    const { authKey, tokenAuth, debug } = this.config;
+    const credentials = Array.from(new Set([authKey, tokenAuth].filter(Boolean) as string[]));
+    if (!credentials.length) {
+      this.logger.warn('MSG91_AUTH_KEY / MSG91_TOKEN_AUTH not set; cannot verify widget access token');
       return { type: 'error', message: 'Missing auth key' };
     }
-    try {
-      const url = new URL('https://control.msg91.com/api/v5/widget/verifyAccessToken');
-      const body = { authkey: authKey, 'access-token': accessToken } as any;
-      const resp = await fetch(url.toString(), {
-        method: 'POST',
-        headers: { accept: 'application/json', 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const json = await resp.json().catch(async () => ({ raw: await resp.text() }));
-      if (!resp.ok) {
-        this.logger.error(`MSG91 widget verify failed: ${resp.status} ${JSON.stringify(json)}`);
-      } else if (debug) {
-        this.logger.debug(`[MSG91] Widget verify response ${resp.status}: ${JSON.stringify(json)}`);
+
+    const url = new URL('https://control.msg91.com/api/v5/widget/verifyAccessToken');
+    let lastResponse: any = { type: 'error', message: 'verify error' };
+
+    for (const credential of credentials) {
+      try {
+        const body = {
+          authkey: credential,
+          tokenAuth: credential,
+          token_auth: credential,
+          'access-token': accessToken,
+          accessToken,
+          access_token: accessToken,
+        } as any;
+        const resp = await fetch(url.toString(), {
+          method: 'POST',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            authkey: credential,
+          },
+          body: JSON.stringify(body),
+        });
+        const json = await resp.json().catch(async () => ({ raw: await resp.text() }));
+        lastResponse = json;
+
+        const success = json && String(json.type || '').toLowerCase() === 'success';
+        if (success) {
+          if (debug) this.logger.debug(`[MSG91] Widget verify success with credential variant`);
+          return json;
+        }
+
+        if (debug) {
+          this.logger.debug(`[MSG91] Widget verify attempt failed (${resp.status}): ${JSON.stringify(json)}`);
+        }
+      } catch (e: any) {
+        lastResponse = { type: 'error', message: e?.message || 'verify error' };
+        this.logger.error('MSG91 widget verify error', e?.message || e);
       }
-      return json;
-    } catch (e: any) {
-      this.logger.error('MSG91 widget verify error', e?.message || e);
-      return { type: 'error', message: e?.message || 'verify error' };
     }
+
+    return lastResponse;
   }
 
   /**

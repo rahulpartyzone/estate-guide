@@ -1,0 +1,100 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: estate
+      POSTGRES_PASSWORD: estatepass
+      POSTGRES_DB: estateguide
+    ports:
+      - "5433:5432" # host:container (5433 avoids conflict with local Postgres)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U estate -d estateguide"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:8.11
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: "8080"
+      DATABASE_URL: postgresql://estate:estatepass@db:5432/estateguide?schema=public
+      JWT_SECRET: local_dev_jwt_secret
+      JWT_REFRESH_SECRET: local_dev_jwt_refresh_secret
+      CORS_ORIGIN: http://localhost:5173,https://localhost:5443,https://yourhomesearch.co.in,https://www.yourhomesearch.co.in
+      COOKIE_SAMESITE: Lax
+      COOKIE_SECURE: "false"
+      STORAGE_DRIVER: db
+      GIT_COMMIT: local
+      APP_BASE_URL: https://www.yourhomesearch.co.in
+      INVITE_EMAIL_PROVIDER: brevo
+      INVITE_FROM_NAME: YourHomeSearch
+      INVITE_FROM_EMAIL: ${INVITE_FROM_EMAIL:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-}
+      MSG91_TOKEN_AUTH: ${MSG91_TOKEN_AUTH:-}
+      MSG91_WIDGET_ID: ${VITE_MSG91_WIDGET_ID:-}
+      MSG91_DEBUG: ${MSG91_DEBUG:-false}
+    ports:
+      - "8081:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma migrate deploy && node dist/main.js"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: /api/v1
+        VITE_MSG91_WIDGET_ID: ${VITE_MSG91_WIDGET_ID:-}
+        VITE_MSG91_TOKEN_AUTH: ${VITE_MSG91_TOKEN_AUTH:-}
+    restart: unless-stopped
+    expose:
+      - "8080"
+    depends_on:
+      - api
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+      - "5443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./cert:/etc/nginx/certs:ro
+    depends_on:
+      - web
+      - api
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles: ["cloudflare"]
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
+    depends_on:
+      - nginx
+
+volumes:
+  pgdata:

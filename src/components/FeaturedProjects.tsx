@@ -4,13 +4,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Home, Calendar, ArrowRight, Star } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getHotProjects } from "@/data/properties";
 import { api } from '@/lib/api';
 import type { Property } from '@/types/property';
 import { mapBackendProperty } from '@/lib/propertyMapper';
+import { ProjectStatusLabels } from '@/constants/enums';
 
 const FeaturedProjects = () => {
-  const [hotProjects, setHotProjects] = useState<Property[]>(getHotProjects().slice(0,4));
+  const [hotProjects, setHotProjects] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -75,7 +75,7 @@ const FeaturedProjects = () => {
                 {/* Status Badge */}
                 <div className="absolute top-4 right-4">
                   <Badge variant="secondary" className="bg-white/90 text-foreground">
-                    {project.status}
+                    {ProjectStatusLabels[project.status as keyof typeof ProjectStatusLabels] || project.status}
                   </Badge>
                 </div>
               </div>
@@ -97,10 +97,19 @@ const FeaturedProjects = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <div>
-                    <p className="text-2xl font-bold text-primary">{project.priceRange}</p>
-                    <p className="text-sm text-muted-foreground">{project.size}</p>
-                  </div>
+                  {project.reraId && (
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">RERA No.</span>: {project.reraId}
+                    </p>
+                  )}
+                  {(project.priceRange || project.developmentSize || project.size || project.totalUnits) && (
+                    <div>
+                      {project.priceRange && <p className="text-2xl font-bold text-primary">{project.priceRange}</p>}
+                      {project.developmentSize && <p className="text-sm text-muted-foreground">Development Size: {project.developmentSize}</p>}
+                      {project.size && <p className="text-sm text-muted-foreground">Unit Size: {project.size}</p>}
+                      {project.totalUnits ? <p className="text-sm text-muted-foreground">Total Units: {project.totalUnits}</p> : null}
+                    </div>
+                  )}
 
                   {project.completionDate && (
                     <div className="flex items-center text-sm text-muted-foreground">

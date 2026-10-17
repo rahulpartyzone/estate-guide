@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LeadBaseDto, LeadSiteVisitDto } from './dtos';
+import { LeadBaseDto, LeadPreferenceDto, LeadSiteVisitDto } from './dtos';
 import * as argon2 from 'argon2';
 import { GcsService } from '../storage/gcs.service';
 import { Msg91Service } from '../msg91/msg91.service';
@@ -33,6 +33,23 @@ export class LeadsService {
   async createInfo(propertyId: string, dto: LeadBaseDto) {
     return this.prisma.lead.create({
       data: { propertyId, type: 'info', name: dto.name, email: dto.email, phone: dto.phone, message: dto.message },
+    });
+  }
+
+  async createPreference(dto: LeadPreferenceDto) {
+    return this.prisma.lead.create({
+      data: {
+        type: 'preference',
+        name: dto.name,
+        email: dto.email,
+        phone: dto.phone,
+        preferredPropertyType: dto.preferredPropertyType,
+        preferredBudgetRange: dto.preferredBudgetRange,
+        preferredLocation: dto.preferredLocation,
+        needsHomeLoanAssistance: dto.homeLoanAssistance === 'yes',
+        sourcePage: dto.sourcePage || null,
+        message: `Preference lead from ${dto.sourcePage || 'site'}`,
+      },
     });
   }
 
@@ -195,7 +212,7 @@ export class LeadsService {
     if (type) where.type = type;
     if (since) where.createdAt = { gte: since };
     const items = await this.prisma.lead.findMany({ where, orderBy: { createdAt: 'desc' }, include: { property: { select: { name: true, city: true, area: true } } } });
-    const headers = ['id','createdAt','type','status','propertyId','propertyName','city','area','name','email','phone','message'];
+    const headers = ['id','createdAt','type','status','propertyId','propertyName','city','area','name','email','phone','preferredPropertyType','preferredBudgetRange','preferredLocation','needsHomeLoanAssistance','sourcePage','message'];
     const rows = [headers.join(',')];
     for (const l of items) {
       const vals = [
@@ -210,6 +227,11 @@ export class LeadsService {
         (l.name||'').replace(/[,\n\r]/g,' '),
         (l.email||'').replace(/[,\n\r]/g,' '),
         (l.phone||'').replace(/[,\n\r]/g,' '),
+        ((l as any).preferredPropertyType||'').replace(/[,\n\r]/g,' '),
+        ((l as any).preferredBudgetRange||'').replace(/[,\n\r]/g,' '),
+        ((l as any).preferredLocation||'').replace(/[,\n\r]/g,' '),
+        (typeof (l as any).needsHomeLoanAssistance === 'boolean' ? String((l as any).needsHomeLoanAssistance) : ''),
+        ((l as any).sourcePage||'').replace(/[,\n\r]/g,' '),
         (l.message||'').replace(/[,\n\r]/g,' '),
       ];
       rows.push(vals.map(v => `"${v}"`).join(','));

@@ -47,6 +47,39 @@ export class LeadStatusUpdateDto {
   status!: string; // validate against enum values upstream if desired
 }
 
+export class LeadPreferenceDto {
+  @IsString()
+  @IsNotEmpty()
+  preferredPropertyType!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  preferredBudgetRange!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  preferredLocation!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  phone!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  homeLoanAssistance!: 'yes' | 'no';
+
+  @IsOptional()
+  @IsString()
+  sourcePage?: string;
+}
+
 export class WidgetVerifyDto {
   @IsString()
   accessToken!: string; // MSG91 widget access token

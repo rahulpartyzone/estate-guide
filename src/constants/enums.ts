@@ -4,9 +4,7 @@ export const PROPERTY_TYPES = [
   'Apartment',
   'Villa',
   'Plot',
-  'LuxuryHomes',
-  'NewLaunch',
-  'Resale',
+  'TownShip',
 ] as const;
 export type PropertyTypeEnum = typeof PROPERTY_TYPES[number];
 
@@ -15,6 +13,7 @@ export const PROJECT_STATUS = [
   'ReadyToMove',
   'Upcoming',
   'NewLaunch',
+  'Resale',
 ] as const;
 export type ProjectStatusEnum = typeof PROJECT_STATUS[number];
 
@@ -23,9 +22,7 @@ export const PropertyTypeLabels: Record<PropertyTypeEnum,string> = {
   Apartment: 'Apartment',
   Villa: 'Villa',
   Plot: 'Plot',
-  LuxuryHomes: 'Luxury Homes',
-  NewLaunch: 'New Launch',
-  Resale: 'Resale',
+  TownShip: 'Town Ship',
 };
 
 export const ProjectStatusLabels: Record<ProjectStatusEnum,string> = {
@@ -33,4 +30,5 @@ export const ProjectStatusLabels: Record<ProjectStatusEnum,string> = {
   ReadyToMove: 'Ready to Move',
   Upcoming: 'Upcoming',
   NewLaunch: 'New Launch',
+  Resale: 'Resale',
 };

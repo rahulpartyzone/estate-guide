@@ -16,7 +16,18 @@ export class BuildersService {
   async get(id: string) {
     const builder = await this.prisma.builder.findUnique({
       where: { id },
-      include: { properties: { select: { id: true, name: true, slug: true, city: true, area: true, mainImageUrl: true, isHotProject: true } }, _count: { select: { properties: true } } },
+      include: {
+        properties: {
+          include: {
+            builder: true,
+            images: true,
+            amenities: { include: { amenity: true } },
+            floorPlans: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+        _count: { select: { properties: true } },
+      },
     });
     if (!builder) throw new NotFoundException('Builder not found');
     return builder;
@@ -33,6 +44,7 @@ export class BuildersService {
         phone: dto.phone,
         email: dto.email,
         logoUrl: dto.logoUrl,
+        heroImageUrl: dto.heroImageUrl,
       },
     });
   }
@@ -50,6 +62,7 @@ export class BuildersService {
         phone: dto.phone,
         email: dto.email,
         logoUrl: dto.logoUrl,
+        heroImageUrl: dto.heroImageUrl,
       },
     });
   }

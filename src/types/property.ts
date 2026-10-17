@@ -9,10 +9,23 @@ export interface Property {
   area: string;
   builder: string;
   builderLogoUrl?: string;
+  builderDescription?: string;
+  builderWebsite?: string;
+  builderPhone?: string;
+  builderEmail?: string;
+  builderExperienceYears?: number;
+  builderRating?: number;
   propertyType: PropertyTypeEnum;
+  reraId?: string;
   // Display strings
   priceRange: string;
+  developmentSize?: string;
+  unitSizeRange?: string;
   size: string;
+  totalUnits?: number;
+  towersBlocks?: string;
+  unitVariants?: string;
+  possessionTime?: string;
   // Raw numeric data (optional from API)
   priceMin?: number;
   priceMax?: number;

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Home, Calendar, ArrowRight, Bath, Bed } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Property } from "@/types/property";
+import { ProjectStatusLabels } from "@/constants/enums";
 
 interface PropertyCardProps {
   property: Property;
@@ -11,10 +12,11 @@ interface PropertyCardProps {
 }
 
 const PropertyCard = ({ property, className }: PropertyCardProps) => {
+  const isPlot = property.propertyType === 'Plot';
   return (
     <Card className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden border-0 bg-card ${className}`}>
       {/* Property Image */}
-      <div className="relative overflow-hidden aspect-[4/3]">
+      <Link to={`/project/${property.id}`} className="block relative overflow-hidden aspect-[4/3]">
         <img
           src={property.mainImage}
           alt={property.name}
@@ -34,7 +36,7 @@ const PropertyCard = ({ property, className }: PropertyCardProps) => {
         {/* Status Badge */}
         <div className="absolute top-4 right-4">
           <Badge variant="secondary" className="bg-white/90 text-foreground text-xs">
-            {property.status}
+            {ProjectStatusLabels[property.status as keyof typeof ProjectStatusLabels] || property.status}
           </Badge>
         </div>
 
@@ -44,7 +46,7 @@ const PropertyCard = ({ property, className }: PropertyCardProps) => {
             {property.propertyType}
           </Badge>
         </div>
-      </div>
+      </Link>
 
       {/* Property Details */}
       <div className="p-5">
@@ -70,17 +72,26 @@ const PropertyCard = ({ property, className }: PropertyCardProps) => {
         </div>
 
         <div className="space-y-3">
+          {property.reraId && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">RERA No.</span>: {property.reraId}
+            </div>
+          )}
           {/* Price and Size */}
-          <div>
-            <p className="text-xl font-bold text-primary">{property.priceRange}</p>
-            <p className="text-sm text-muted-foreground">{property.size}</p>
-          </div>
+          {(property.priceRange || property.developmentSize || property.size || property.totalUnits) && (
+            <div>
+              {property.priceRange && <p className="text-xl font-bold text-primary">{property.priceRange}</p>}
+              {property.developmentSize && <p className="text-sm text-muted-foreground">Development Size: {property.developmentSize}</p>}
+              {property.size && <p className="text-sm text-muted-foreground">Unit Size: {property.size}</p>}
+              {property.totalUnits ? <p className="text-sm text-muted-foreground">Total Units: {property.totalUnits}</p> : null}
+            </div>
+          )}
 
           {/* Bedrooms and Bathrooms */}
           {(() => {
             const bedroomLabel = property.bedroomSummary || (property.bedrooms != null ? String(property.bedrooms) : undefined);
             const bathroomLabel = property.bathroomSummary || (property.bathrooms != null ? String(property.bathrooms) : undefined);
-            return (bedroomLabel || bathroomLabel) ? (
+            return !isPlot && (bedroomLabel || bathroomLabel) ? (
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               {bedroomLabel && (
                 <div className="flex items-center">

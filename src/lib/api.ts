@@ -89,6 +89,19 @@ export const api = {
   },
   logout() { return request<void>('/auth/logout', { method: 'POST' }); },
   me() { return request<any>('/auth/me'); },
+  acceptInvite(payload: { token: string; password: string; name?: string }) {
+    return request<{ user: any; accessToken?: string; message: string }>(`/auth/accept-invite`, { method: 'POST', body: JSON.stringify(payload) })
+      .then((r) => {
+        if (r.accessToken) {
+          sessionStorage.setItem('accessToken', r.accessToken);
+          try { localStorage.setItem('accessToken', r.accessToken); } catch (_) {}
+        }
+        return r;
+      });
+  },
+  changePassword(payload: { currentPassword: string; newPassword: string; confirmNewPassword: string }) {
+    return request<{ message: string }>(`/auth/change-password`, { method: 'POST', body: JSON.stringify(payload) });
+  },
 
   // Testimonials
   listTestimonials(published?: boolean) {
@@ -134,6 +147,21 @@ export const api = {
   verifyBrochureWidget(propertyId: string, accessToken: string, opts?: { phone?: string; propertyName?: string }) {
     return request<{ downloadUrl: string }>(`/properties/${propertyId}/brochure/verify-widget`, { method: 'POST', body: JSON.stringify({ accessToken, ...(opts||{}) }) });
   },
+  verifyBrochureExternalOtp(propertyId: string, payload: { contact: string; otp: string }) {
+    return request<{ downloadUrl: string }>(`/properties/${propertyId}/brochure/verify-external-otp`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  createPreferenceLead(payload: {
+    preferredPropertyType: string;
+    preferredBudgetRange: string;
+    preferredLocation: string;
+    name: string;
+    email: string;
+    phone: string;
+    homeLoanAssistance: 'yes' | 'no';
+    sourcePage?: string;
+  }) {
+    return request<any>(`/leads/preference`, { method: 'POST', body: JSON.stringify(payload) });
+  },
 
   // Builders (public)
   listBuilders() {
@@ -141,6 +169,19 @@ export const api = {
   },
   getBuilder(id: string) {
     return request<any>(`/builders/${id}`);
+  },
+
+  // Site profile (public)
+  getSiteProfile() {
+    return request<any>(`/site-profile`);
+  },
+
+  // News (public)
+  listNews() {
+    return request<any[]>(`/news`);
+  },
+  getNewsBySlug(slug: string) {
+    return request<any>(`/news/${slug}`);
   },
 
   // Admin Properties
@@ -167,6 +208,20 @@ export const api = {
   createBuilder(dto: any) { return request<any>(`/admin/builders`, { method: 'POST', body: JSON.stringify(dto) }); },
   updateBuilder(id: string, dto: any) { return request<any>(`/admin/builders/${id}`, { method: 'PUT', body: JSON.stringify(dto) }); },
   deleteBuilder(id: string) { return request<void>(`/admin/builders/${id}`, { method: 'DELETE' }); },
+
+  // Admin site profile + executives
+  getAdminSiteProfile() { return request<any>(`/admin/site-profile`); },
+  upsertAdminSiteProfile(dto: any) { return request<any>(`/admin/site-profile`, { method: 'PUT', body: JSON.stringify(dto) }); },
+  createExecutive(dto: any) { return request<any>(`/admin/site-profile/executives`, { method: 'POST', body: JSON.stringify(dto) }); },
+  updateExecutive(id: string, dto: any) { return request<any>(`/admin/site-profile/executives/${id}`, { method: 'PUT', body: JSON.stringify(dto) }); },
+  deleteExecutive(id: string) { return request<void>(`/admin/site-profile/executives/${id}`, { method: 'DELETE' }); },
+
+  // Admin News
+  listNewsAdmin() { return request<any[]>(`/admin/news`); },
+  createNews(dto: any) { return request<any>(`/admin/news`, { method: 'POST', body: JSON.stringify(dto) }); },
+  updateNews(id: string, dto: any) { return request<any>(`/admin/news/${id}`, { method: 'PUT', body: JSON.stringify(dto) }); },
+  deleteNews(id: string) { return request<void>(`/admin/news/${id}`, { method: 'DELETE' }); },
+  publishNews(id: string, published: boolean) { return request<any>(`/admin/news/${id}/publish`, { method: 'PATCH', body: JSON.stringify({ published }) }); },
 
   // Subscribers (public)
   subscribe(email: string, name?: string) { return request<any>(`/subscribers`, { method: 'POST', body: JSON.stringify({ email, name }) }); },
@@ -213,6 +268,26 @@ export const api = {
   createAmenity(dto: { name: string; code?: string; imageUrl?: string }) { return request<any>(`/admin/amenities`, { method: 'POST', body: JSON.stringify(dto) }); },
   updateAmenity(id: string, dto: { name?: string; code?: string; imageUrl?: string }) { return request<any>(`/admin/amenities/${id}`, { method: 'PUT', body: JSON.stringify(dto) }); },
   deleteAmenity(id: string) { return request<void>(`/admin/amenities/${id}`, { method: 'DELETE' }); },
+
+  // Admin onboarding + RBAC
+  listAdminUsers() { return request<any[]>(`/admin/users`); },
+  updateAdminUser(userId: string, payload: { email?: string; isActive?: boolean; roleId?: string }) {
+    return request<any>(`/admin/users/${userId}`, { method: 'PUT', body: JSON.stringify(payload) });
+  },
+  getAdminMe() { return request<any>(`/admin/users/me`); },
+  getAdminMenu() { return request<any[]>(`/admin/users/menu`); },
+  createUserInvite(payload: { email: string; roleName: string }) {
+    return request<any>(`/admin/users/invite`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+  listRbacRoles() { return request<any[]>(`/admin/users/rbac/roles`); },
+  listRbacPermissions() { return request<any[]>(`/admin/users/rbac/permissions`); },
+  listRbacMenuItems() { return request<any[]>(`/admin/users/rbac/menu-items`); },
+  setRolePermissions(roleId: string, permissionKeys: string[]) {
+    return request<any>(`/admin/users/rbac/roles/${roleId}/permissions`, { method: 'PUT', body: JSON.stringify({ permissionKeys }) });
+  },
+  setRoleMenuAccess(roleId: string, menuKeys: string[]) {
+    return request<any>(`/admin/users/rbac/roles/${roleId}/menu-access`, { method: 'PUT', body: JSON.stringify({ menuKeys }) });
+  },
 };
 
 // interface already exported above; no re-export needed

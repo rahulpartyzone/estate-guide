@@ -26,3 +26,9 @@ dist-ssr
 .terraform/
 *.tfstate
 *.tfstate.backup
+
+# Secrets and local certificates (never commit)
+.env
+server/.env
+cert/
+*.pem

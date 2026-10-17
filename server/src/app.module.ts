@@ -17,6 +17,8 @@ import { Msg91Module } from './msg91/msg91.module';
 import { UsersModule } from './users/users.module';
 import { FilesModule } from './files/files.module';
 import { AmenitiesModule } from './amenities/amenities.module';
+import { SiteContentModule } from './site-content/site-content.module';
+import { NewsModule } from './news/news.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { AmenitiesModule } from './amenities/amenities.module';
   UsersModule,
   FilesModule,
   AmenitiesModule,
+  SiteContentModule,
+  NewsModule,
   ],
   controllers: [HealthController, VersionController, AdminStatsController],
 })

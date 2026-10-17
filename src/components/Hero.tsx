@@ -8,9 +8,33 @@ type HeroProps = {
   onSearchTermChange: (value: string) => void;
   onSearchSubmit: () => void;
   isSearching?: boolean;
+  heroImageUrl?: string;
+  titlePrefix?: string;
+  titleHighlight?: string;
+  description?: string;
+  stats?: Array<{ value: string; label: string }>;
 };
 
-const Hero = ({ searchTerm, onSearchTermChange, onSearchSubmit, isSearching }: HeroProps) => {
+const Hero = ({
+  searchTerm,
+  onSearchTermChange,
+  onSearchSubmit,
+  isSearching,
+  heroImageUrl,
+  titlePrefix,
+  titleHighlight,
+  description,
+  stats,
+}: HeroProps) => {
+  const heroTitlePrefix = titlePrefix?.trim() || "Find Your";
+  const heroTitleHighlight = titleHighlight?.trim() || "Dream Home";
+  const heroDescription = description?.trim() || "Discover premium properties with modern amenities and prime locations. Your perfect home awaits in our curated collection of luxury real estate.";
+  const heroStats = (stats && stats.length > 0 ? stats : [
+    { value: "50+", label: "Premium Projects" },
+    { value: "1000+", label: "Happy Families" },
+    { value: "25+", label: "Prime Locations" },
+  ]).filter((item) => item.value?.trim() && item.label?.trim());
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onSearchSubmit();
@@ -21,7 +45,7 @@ const Hero = ({ searchTerm, onSearchTermChange, onSearchSubmit, isSearching }: H
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${heroBuilding})` }}
+        style={{ backgroundImage: `url(${heroImageUrl || heroBuilding})` }}
       >
         <div className="absolute inset-0 bg-gradient-hero opacity-80" />
       </div>
@@ -30,13 +54,12 @@ const Hero = ({ searchTerm, onSearchTermChange, onSearchSubmit, isSearching }: H
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="max-w-4xl mx-auto animate-fade-in">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            Find Your 
-            <span className="text-accent block mt-2">Dream Home</span>
+            {heroTitlePrefix}
+            <span className="text-accent block mt-2">{heroTitleHighlight}</span>
           </h1>
           
           <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Discover premium properties with modern amenities and prime locations. 
-            Your perfect home awaits in our curated collection of luxury real estate.
+            {heroDescription}
           </p>
 
           {/* Search Bar */}
@@ -68,18 +91,12 @@ const Hero = ({ searchTerm, onSearchTermChange, onSearchSubmit, isSearching }: H
 
           {/* Stats */}
           <div className="flex flex-wrap justify-center gap-8 text-white">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-accent">50+</div>
-              <div className="text-white/80">Premium Projects</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-accent">1000+</div>
-              <div className="text-white/80">Happy Families</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-accent">25+</div>
-              <div className="text-white/80">Prime Locations</div>
-            </div>
+            {heroStats.map((item) => (
+              <div key={`${item.value}-${item.label}`} className="text-center">
+                <div className="text-3xl font-bold text-accent">{item.value}</div>
+                <div className="text-white/80">{item.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

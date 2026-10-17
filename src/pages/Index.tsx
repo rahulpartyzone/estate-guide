@@ -6,15 +6,34 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import FeaturedProjects from "@/components/FeaturedProjects";
 import PropertyCard from "@/components/PropertyCard";
-import { sampleProperties } from "@/data/properties";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Property } from "@/types/property";
 import { mapBackendProperty } from "@/lib/propertyMapper";
+import LeadPreferenceForm from "@/components/LeadPreferenceForm";
+import { absolutizeApiUrl } from "@/lib/url";
+
+type LandingHeroContent = {
+  imageUrl: string;
+  titlePrefix: string;
+  titleHighlight: string;
+  description: string;
+  stats: Array<{ value: string; label: string }>;
+};
 
 const Index = () => {
-  const [properties, setProperties] = useState<Property[]>(sampleProperties);
+  const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
+  const absolutize = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
+
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [landingHeroContent, setLandingHeroContent] = useState<LandingHeroContent>({
+    imageUrl: "",
+    titlePrefix: "",
+    titleHighlight: "",
+    description: "",
+    stats: [],
+  });
   const [loadingProps, setLoadingProps] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
@@ -30,14 +49,46 @@ const Index = () => {
         const { data } = await api.listProperties({ pageSize: 50 });
         if (cancelled) return;
         const mapped: Property[] = (data || []).map(mapBackendProperty);
-        if (mapped.length) {
-          setProperties(mapped);
-        }
+        setProperties(mapped);
       } catch (e) {
         if (cancelled) return;
-        // Silent fallback to sample data
       } finally {
         if (!cancelled) setLoadingProps(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await api.getSiteProfile();
+        if (cancelled) return;
+        const stats = [
+          { value: profile?.landingHeroStat1Value || "", label: profile?.landingHeroStat1Label || "" },
+          { value: profile?.landingHeroStat2Value || "", label: profile?.landingHeroStat2Label || "" },
+          { value: profile?.landingHeroStat3Value || "", label: profile?.landingHeroStat3Label || "" },
+        ].filter((item) => item.value?.trim() && item.label?.trim());
+        setLandingHeroContent({
+          imageUrl: absolutize(profile?.landingHeroImageUrl || ""),
+          titlePrefix: profile?.landingHeroTitlePrefix || "",
+          titleHighlight: profile?.landingHeroTitleHighlight || "",
+          description: profile?.landingHeroDescription || "",
+          stats,
+        });
+      } catch {
+        if (!cancelled) {
+          setLandingHeroContent({
+            imageUrl: "",
+            titlePrefix: "",
+            titleHighlight: "",
+            description: "",
+            stats: [],
+          });
+        }
       }
     })();
     return () => {
@@ -103,6 +154,11 @@ const Index = () => {
         onSearchTermChange={setSearchTerm}
         onSearchSubmit={handleSearchSubmit}
         isSearching={loadingProps}
+        heroImageUrl={landingHeroContent.imageUrl || undefined}
+        titlePrefix={landingHeroContent.titlePrefix || undefined}
+        titleHighlight={landingHeroContent.titleHighlight || undefined}
+        description={landingHeroContent.description || undefined}
+        stats={landingHeroContent.stats.length ? landingHeroContent.stats : undefined}
       />
       <FeaturedProjects />
       <section className="py-16 bg-muted/30 border-y">
@@ -135,6 +191,8 @@ const Index = () => {
           </form>
         </div>
       </section>
+
+      <LeadPreferenceForm sourcePage="landing" className="py-12 bg-muted/20 border-y" />
 
       {/* All Projects Preview Section */}
       <section id="all-projects" className="py-16 bg-background">

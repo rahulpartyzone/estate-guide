@@ -1,5 +1,4 @@
 import { useParams } from "react-router-dom";
-import { getPropertyById } from "@/data/properties";
 import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
@@ -9,13 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Home, Calendar, Download, Phone, Mail, Share, Heart, Bath, Bed, Ruler } from "lucide-react";
+import { MapPin, Home, Calendar, Download, Phone, Mail, Share, Heart, Bath, Bed, Ruler, MessageCircle } from "lucide-react";
 import MapView from "@/components/MapView";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { PropertyTypeLabels, ProjectStatusLabels } from '@/constants/enums';
 import { toast } from "sonner";
 import { mapBackendProperty, formatINRShort } from '@/lib/propertyMapper';
+import { absolutizeApiUrl } from "@/lib/url";
 import type { Property } from '@/types/property';
 
 const ProjectDetail = () => {
@@ -33,6 +33,7 @@ const ProjectDetail = () => {
   const [usingWidget, setUsingWidget] = useState(false);
   const hasBrochure = !!property?.brochureUrl;
   const [amenityCatalog, setAmenityCatalog] = useState<any[]>([]);
+  const [companyWhatsappNumber, setCompanyWhatsappNumber] = useState<string>("");
 
   useEffect(() => {
     if (!id) return;
@@ -46,9 +47,7 @@ const ProjectDetail = () => {
         setProperty(mapBackendProperty(p));
       } catch (e: any) {
         if (cancelled) return;
-        // fallback to sample if available
-        const sample = getPropertyById(id);
-        if (sample) setProperty(sample);
+        setProperty(undefined);
         setError(e?.message || 'Failed to load property');
       } finally {
         if (!cancelled) setLoading(false);
@@ -62,17 +61,25 @@ const ProjectDetail = () => {
       try {
         const list = await api.listAmenities();
         const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
-        let API_ORIGIN = window.location.origin;
-        try { API_ORIGIN = new URL(RAW_API_BASE).origin; } catch {}
-        const fixUrl = (u?: string) => {
-          if (!u) return u;
-          if (/^https?:\/\//i.test(u)) return u;
-          if (u.startsWith('/api/')) return `${API_ORIGIN}${u}`;
-          return u;
-        };
+        const fixUrl = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
         setAmenityCatalog((list||[]).map((a:any)=> ({ ...a, imageUrl: fixUrl(a.imageUrl) })));
       } catch {}
     })();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await api.getSiteProfile();
+        if (!cancelled) setCompanyWhatsappNumber(profile?.whatsappNumber || "");
+      } catch {
+        if (!cancelled) setCompanyWhatsappNumber("");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -164,22 +171,47 @@ const ProjectDetail = () => {
         if (typeof (window as any).widgetVerifyOtp !== 'function') { toast.error('MSG91 widget not configured'); return; }
         // @ts-ignore
         const result = await (window as any).widgetVerifyOtp(otp.trim());
-        const token = (result && (result.message || result.token || result.accessToken || result?.data?.token || result?.data?.accessToken));
-        if (result.type !== "success" || !token) { toast.error('No access token from widget'); return; }
-  const res = await api.verifyBrochureWidget(id, token, { phone: contact, propertyName: property?.name });
-        // Absolutize /api/... URLs to backend origin
+        if (result?.type && String(result.type).toLowerCase() !== 'success') {
+          toast.error(result?.message || 'Invalid OTP');
+          return;
+        }
+        const maybeMessageToken =
+          typeof result?.message === 'string' && /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/.test(result.message)
+            ? result.message
+            : '';
+        const token =
+          (result && (
+            result.accessToken ||
+            result.token ||
+            result?.data?.accessToken ||
+            result?.data?.token ||
+            result?.access_token ||
+            result?.data?.access_token ||
+            maybeMessageToken
+          )) ||
+          "";
+        let res;
+        if (token) {
+          try {
+            res = await api.verifyBrochureWidget(id, token, { phone: contact, propertyName: property?.name });
+          } catch (error: any) {
+            const message = String(error?.message || '').toLowerCase();
+            if (!message.includes('widget token invalid')) {
+              throw error;
+            }
+            res = await api.verifyBrochureExternalOtp(id, { contact, otp: otp.trim() });
+          }
+        } else {
+          res = await api.verifyBrochureExternalOtp(id, { contact, otp: otp.trim() });
+        }
         const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
-        let API_ORIGIN = window.location.origin;
-        try { API_ORIGIN = new URL(RAW_API_BASE).origin; } catch {}
-        const finalUrl = res.downloadUrl?.startsWith('/api/') ? `${API_ORIGIN}${res.downloadUrl}` : res.downloadUrl;
+        const finalUrl = absolutizeApiUrl(res.downloadUrl, RAW_API_BASE);
         window.open(finalUrl, '_blank');
         setOtpOpen(false);
       } else {
         const res = await api.verifyBrochureOtp(id, { otp: otp.trim(), contact: contact.trim() });
         const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
-        let API_ORIGIN = window.location.origin;
-        try { API_ORIGIN = new URL(RAW_API_BASE).origin; } catch {}
-        const url = res.downloadUrl?.startsWith('/api/') ? `${API_ORIGIN}${res.downloadUrl}` : res.downloadUrl;
+        const url = absolutizeApiUrl(res.downloadUrl, RAW_API_BASE);
         window.open(url, '_blank');
         setOtpOpen(false);
       }
@@ -203,6 +235,17 @@ const ProjectDetail = () => {
 
   const handleWishlist = () => {
     toast.success("Added to wishlist!");
+  };
+
+  const handleWhatsAppChat = () => {
+    const digits = (companyWhatsappNumber || property?.builderPhone || '').replace(/\D/g, '');
+    if (!digits) {
+      toast.error('WhatsApp contact is not configured');
+      return;
+    }
+    const message = encodeURIComponent(`Hi, I'm interested in ${property?.name || 'this project'}. Please share more details.`);
+    const url = `https://wa.me/${digits}?text=${message}`;
+    window.open(url, '_blank');
   };
 
   return (
@@ -284,18 +327,81 @@ const ProjectDetail = () => {
             {/* Main Content */}
             <div className="lg:col-span-2">
               <Tabs defaultValue="overview" className="space-y-8">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-6">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="gallery">Gallery</TabsTrigger>
+                  <TabsTrigger value="floor-plans">Floor Plans</TabsTrigger>
                   <TabsTrigger value="amenities">Amenities</TabsTrigger>
                   <TabsTrigger value="location">Location</TabsTrigger>
-                  <TabsTrigger value="gallery">Gallery</TabsTrigger>
+                  <TabsTrigger value="builder-profile">Builder Profile</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
                   <Card className="p-6">
                     <h2 className="text-2xl font-bold text-foreground mb-4">Project Overview</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                      {(() => {
+                      <div className="text-center p-3 bg-secondary rounded-lg">
+                        <MapPin className="h-6 w-6 text-primary mx-auto mb-2" />
+                        <div className="text-sm text-muted-foreground">Location</div>
+                        <div className="font-semibold text-xs">{property.area}, {property.city}</div>
+                      </div>
+                      {property.priceRange && (
+                        <div className="text-center p-3 bg-secondary rounded-lg">
+                          <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
+                          <div className="text-sm text-muted-foreground">Price Range</div>
+                          <div className="font-semibold text-xs">{property.priceRange}</div>
+                        </div>
+                      )}
+                      {property.status && (
+                        <div className="text-center p-3 bg-secondary rounded-lg">
+                          <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
+                          <div className="text-sm text-muted-foreground">Status</div>
+                          <div className="font-semibold text-xs">{ProjectStatusLabels[property.status as keyof typeof ProjectStatusLabels] || property.status}</div>
+                        </div>
+                      )}
+                      {property.developmentSize && (
+                        <div className="text-center p-3 bg-secondary rounded-lg">
+                          <Ruler className="h-6 w-6 text-primary mx-auto mb-2" />
+                          <div className="text-sm text-muted-foreground">Development Size</div>
+                          <div className="font-semibold text-xs">{property.developmentSize}</div>
+                        </div>
+                      )}
+                      {property.size && (
+                        <div className="text-center p-3 bg-secondary rounded-lg">
+                          <Ruler className="h-6 w-6 text-primary mx-auto mb-2" />
+                          <div className="text-sm text-muted-foreground">Unit Size</div>
+                          <div className="font-semibold text-xs">{property.size}</div>
+                        </div>
+                      )}
+                      {property.totalUnits ? (
+                        <div className="text-center p-3 bg-secondary rounded-lg">
+                          <Home className="h-6 w-6 text-primary mx-auto mb-2" />
+                          <div className="text-sm text-muted-foreground">Total Units</div>
+                          <div className="font-semibold text-xs">{property.totalUnits}</div>
+                        </div>
+                      ) : null}
+                      {property.towersBlocks && (
+                        <div className="text-center p-3 bg-secondary rounded-lg">
+                          <Home className="h-6 w-6 text-primary mx-auto mb-2" />
+                          <div className="text-sm text-muted-foreground">Towers and Blocks</div>
+                          <div className="font-semibold text-xs">{property.towersBlocks}</div>
+                        </div>
+                      )}
+                      {property.unitVariants && (
+                        <div className="text-center p-3 bg-secondary rounded-lg">
+                          <Ruler className="h-6 w-6 text-primary mx-auto mb-2" />
+                          <div className="text-sm text-muted-foreground">Unit Variants</div>
+                          <div className="font-semibold text-xs">{property.unitVariants}</div>
+                        </div>
+                      )}
+                      {property.possessionTime && (
+                        <div className="text-center p-3 bg-secondary rounded-lg">
+                          <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
+                          <div className="text-sm text-muted-foreground">Possession Time</div>
+                          <div className="font-semibold text-xs">{property.possessionTime}</div>
+                        </div>
+                      )}
+                      {property.propertyType !== 'Plot' && (() => {
                         const bedroomLabel = property.bedroomSummary || (property.bedrooms != null ? String(property.bedrooms) : undefined);
                         return bedroomLabel ? (
                         <div className="text-center p-3 bg-secondary rounded-lg">
@@ -305,7 +411,7 @@ const ProjectDetail = () => {
                         </div>
                         ) : null;
                       })()}
-                      {(() => {
+                      {property.propertyType !== 'Plot' && (() => {
                         const bathroomLabel = property.bathroomSummary || (property.bathrooms != null ? String(property.bathrooms) : undefined);
                         return bathroomLabel ? (
                         <div className="text-center p-3 bg-secondary rounded-lg">
@@ -315,22 +421,22 @@ const ProjectDetail = () => {
                         </div>
                         ) : null;
                       })()}
-                      <div className="text-center p-3 bg-secondary rounded-lg">
-                        <Home className="h-6 w-6 text-primary mx-auto mb-2" />
-                        <div className="text-sm text-muted-foreground">Size</div>
-                        <div className="font-semibold text-xs">{property.size}</div>
-                      </div>
-                      <div className="text-center p-3 bg-secondary rounded-lg">
-                        <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
-                        <div className="text-sm text-muted-foreground">Completion</div>
-                        <div className="font-semibold text-xs">{property.completionDate || "TBA"}</div>
-                      </div>
+                      {property.completionDate && (
+                        <div className="text-center p-3 bg-secondary rounded-lg">
+                          <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
+                          <div className="text-sm text-muted-foreground">Completion</div>
+                          <div className="font-semibold text-xs">{property.completionDate}</div>
+                        </div>
+                      )}
                     </div>
                     <p className="text-muted-foreground leading-relaxed">
                       {property.description} This exceptional project by {property.builder} offers 
                       modern living with premium amenities and strategic location advantages.
                     </p>
                   </Card>
+                </TabsContent>
+
+                <TabsContent value="floor-plans" className="space-y-6">
                   {property.floorPlans?.length ? (
                     <Card className="p-6 space-y-4">
                       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -346,8 +452,9 @@ const ProjectDetail = () => {
                         <CarouselContent>
                           {property.floorPlans.map((plan, index) => {
                             const planTitle = plan.type?.trim() || `Option ${index + 1}`;
-                            const hasBedrooms = typeof plan.bedrooms === "number" && !Number.isNaN(plan.bedrooms);
-                            const hasBathrooms = typeof plan.bathrooms === "number" && !Number.isNaN(plan.bathrooms);
+                            const isPlot = property.propertyType === 'Plot';
+                            const hasBedrooms = !isPlot && typeof plan.bedrooms === "number" && !Number.isNaN(plan.bedrooms);
+                            const hasBathrooms = !isPlot && typeof plan.bathrooms === "number" && !Number.isNaN(plan.bathrooms);
                             const rawPlanPrice = plan.price?.trim();
                             const priceValue = typeof plan.priceValue === "number" && !Number.isNaN(plan.priceValue)
                               ? plan.priceValue
@@ -412,11 +519,6 @@ const ProjectDetail = () => {
                                         )}
                                       </div>
                                     )}
-                                    {planPrice && (
-                                      <div className="text-xs text-muted-foreground">
-                                        <span className="font-medium text-foreground">Tip:</span> Provide price per square foot or payment schedule details to help buyers compare plans.
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
                               </CarouselItem>
@@ -427,7 +529,9 @@ const ProjectDetail = () => {
                         <CarouselNext className="-right-4 top-1/2 -translate-y-1/2 shadow-md" aria-label="Next floor plan" />
                       </Carousel>
                     </Card>
-                  ) : null}
+                  ) : (
+                    <Card className="p-6 text-sm text-muted-foreground">No floor plans available.</Card>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="amenities" className="space-y-6">
@@ -555,6 +659,61 @@ const ProjectDetail = () => {
                     )}
                   </Card>
                 </TabsContent>
+
+                <TabsContent value="builder-profile" className="space-y-6">
+                  <Card className="p-6">
+                    <h2 className="text-2xl font-bold text-foreground mb-4">Builder Profile</h2>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        {property.builderLogoUrl ? (
+                          <div className="w-16 h-16 rounded-full overflow-hidden border bg-white flex items-center justify-center shrink-0">
+                            <img
+                              src={property.builderLogoUrl}
+                              alt={`${property.builder} logo`}
+                              className="max-w-full max-h-full object-contain"
+                              loading="lazy"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <Home className="h-8 w-8 text-primary" />
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="text-xl font-semibold text-foreground">{property.builder}</h3>
+                          {property.builderExperienceYears != null && (
+                            <p className="text-sm text-muted-foreground">Experience: {property.builderExperienceYears} years</p>
+                          )}
+                          {property.builderRating != null && (
+                            <p className="text-sm text-muted-foreground">Rating: {property.builderRating.toFixed(1)} / 5</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {property.builderDescription ? (
+                        <p className="text-muted-foreground leading-relaxed">{property.builderDescription}</p>
+                      ) : (
+                        <p className="text-muted-foreground">Builder description is not available.</p>
+                      )}
+
+                      {(property.builderWebsite || property.builderPhone || property.builderEmail) && (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {property.builderWebsite && (
+                            <a href={property.builderWebsite} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                              Website: {property.builderWebsite}
+                            </a>
+                          )}
+                          {property.builderPhone && (
+                            <div className="text-sm text-muted-foreground">Phone: {property.builderPhone}</div>
+                          )}
+                          {property.builderEmail && (
+                            <div className="text-sm text-muted-foreground">Email: {property.builderEmail}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </TabsContent>
               </Tabs>
             </div>
 
@@ -563,12 +722,19 @@ const ProjectDetail = () => {
               {/* Price & CTA Card */}
               <Card className="p-6 sticky top-6">
                 <div className="text-center mb-6">
-                  <div className="text-3xl font-bold text-primary mb-1">
-                    {property.priceRange}
-                  </div>
-                  <div className="text-muted-foreground">
-                    {property.size}
-                  </div>
+                  {property.reraId && (
+                    <div className="text-sm text-muted-foreground mb-2">
+                      <span className="font-medium text-foreground">RERA No.</span>: {property.reraId}
+                    </div>
+                  )}
+                  {property.priceRange && (
+                    <div className="text-3xl font-bold text-primary mb-1">
+                      {property.priceRange}
+                    </div>
+                  )}
+                  {property.developmentSize && <div className="text-muted-foreground">Development Size: {property.developmentSize}</div>}
+                  {property.size && <div className="text-muted-foreground">Unit Size: {property.size}</div>}
+                  {property.totalUnits ? <div className="text-muted-foreground">Total Units: {property.totalUnits}</div> : null}
                 </div>
 
                 <div className="space-y-3">
@@ -587,6 +753,11 @@ const ProjectDetail = () => {
                       Brochure not available for this property yet.
                     </div>
                   )}
+
+                  <Button variant="outline" className="w-full py-6" onClick={handleWhatsAppChat}>
+                    <MessageCircle className="h-5 w-5 mr-2" />
+                    Chat on WhatsApp
+                  </Button>
                   
                   <Button variant="outline" className="w-full py-6">
                     <Phone className="h-5 w-5 mr-2" />

@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import { absolutizeApiUrl } from '@/lib/url';
 import { Loader2, Plus, Edit, Trash2, Upload, X } from 'lucide-react';
 
 type Amenity = { id: string; name: string; code?: string; imageUrl?: string };
@@ -28,14 +29,7 @@ export default function AdminAmenities() {
     try {
       const list = await api.listAmenitiesAdmin();
       const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
-      let API_ORIGIN = window.location.origin;
-      try { API_ORIGIN = new URL(RAW_API_BASE).origin; } catch {}
-      const fixUrl = (u?: string) => {
-        if (!u) return u;
-        if (/^https?:\/\//i.test(u)) return u;
-        if (u.startsWith('/api/')) return `${API_ORIGIN}${u}`;
-        return u;
-      };
+      const fixUrl = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
       setItems((list || []).map((a: any) => ({ ...a, imageUrl: fixUrl(a.imageUrl) })));
     } catch (e: any) {
       toast({ title: 'Failed to load amenities', description: e?.message, variant: 'destructive' });
@@ -120,7 +114,7 @@ export default function AdminAmenities() {
                 <Input id="am-code" value={code} onChange={e=>setCode(e.target.value)} placeholder="e.g. pool" />
               </div>
               <div className="space-y-2">
-                <Label>Image (optional)</Label>
+                <Label>Image (optional) (Recommended: 128×128 px)</Label>
                 <div className="flex items-center gap-2 flex-wrap">
                   <label className="border rounded px-3 py-2 flex items-center gap-2 cursor-pointer text-sm hover:bg-secondary/60">
                     <Upload className="h-4 w-4" /> {imageFile ? 'Replace Image' : (imageUrl ? 'Replace Image' : 'Upload Image')}

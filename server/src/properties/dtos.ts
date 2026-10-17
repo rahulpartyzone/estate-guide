@@ -11,9 +11,9 @@ export class PriceDto {
 }
 
 export class SizeDto {
-  @IsInt() min!: number;
-  @IsInt() max!: number;
-  @IsString() unit!: string;
+  @IsOptional() @Type(() => Number) @IsInt() min?: number;
+  @IsOptional() @Type(() => Number) @IsInt() max?: number;
+  @IsOptional() @IsString() unit?: string;
 }
 
 export class CoordinatesDto {
@@ -31,10 +31,14 @@ export class ImageDto {
 
 export class FloorPlanDto {
   @IsString() unitType!: string;
-  @IsInt() size!: number;
-  @IsString() unit!: string;
-  @IsNumber() price!: number;
-  @IsString() currency!: string;
+  @IsOptional() @Type(() => Number) @IsInt()
+  size?: number;
+  @IsOptional() @IsString()
+  unit?: string;
+  @IsOptional() @Type(() => Number) @IsNumber()
+  price?: number;
+  @IsOptional() @IsString()
+  currency?: string;
   @Matches(/^(https?:\/\/|\/)/, { message: 'imageUrl must be an absolute URL or leading-slash path' })
   imageUrl!: string;
   @IsOptional() @Type(() => Number) @IsInt()
@@ -52,14 +56,20 @@ export class PropertyCreateDto {
   @IsString() area!: string;
   @IsString() builderId!: string;
   @IsEnum(PropertyType) propertyType!: PropertyType;
-  @IsEnum(ProjectStatus) status!: ProjectStatus;
+  @IsOptional() @IsEnum(ProjectStatus) status?: ProjectStatus;
   @IsOptional() @IsBoolean() isHotProject?: boolean;
+  @IsString() @IsNotEmpty() reraId!: string;
 
   @ValidateNested() @Type(() => PriceDto) price!: PriceDto;
-  @ValidateNested() @Type(() => SizeDto) size!: SizeDto;
+  @IsOptional() @ValidateNested() @Type(() => SizeDto) size?: SizeDto;
+  @IsOptional() @IsString() unitSizeRange?: string;
+  @IsOptional() @IsString() towersBlocks?: string;
+  @IsOptional() @IsString() unitVariants?: string;
+  @IsOptional() @IsString() possessionTime?: string;
 
   @IsOptional() @IsInt() bedrooms?: number;
   @IsOptional() @IsInt() bathrooms?: number;
+  @IsOptional() @Type(() => Number) @IsInt() totalUnits?: number;
   @IsOptional() @IsDateString() completionDate?: string;
   @IsOptional() @ValidateNested() @Type(() => CoordinatesDto) coordinates?: CoordinatesDto;
 
