@@ -9,13 +9,17 @@ SRC_DB="${SRC_DB:-estateguide}"
 SRC_USER="${SRC_USER:-estate}"
 DUMP=/tmp/estateguide.dump
 
-counts_sql="select 'Builder' as table_name, count(*) from \"Builder\"
-  union all select 'Property', count(*) from \"Property\"
-  union all select 'Lead', count(*) from \"Lead\"
-  union all select 'User', count(*) from \"User\"
-  union all select 'FileAsset (files, copied later)', count(*) from \"FileAsset\""
+counts_sql="select 'Builder' as table_name, count(*) from public.\"Builder\"
+  union all select 'Property', count(*) from public.\"Property\"
+  union all select 'Lead', count(*) from public.\"Lead\"
+  union all select 'User', count(*) from public.\"User\"
+  union all select 'FileAsset (files, copied later)', count(*) from public.\"FileAsset\""
+tables_sql="select table_schema, count(*) as tables from information_schema.tables
+  where table_schema not in ('pg_catalog', 'information_schema') group by 1 order by 1"
 
 echo "== Local database '$SRC_DB' in container $(hostname) =="
+echo "pg_dump: $(pg_dump --version)"
+echo "Neon server: $(psql "$TARGET_URL" -tAc 'show server_version')  database: $(psql "$TARGET_URL" -tAc 'select current_database()')  user: $(psql "$TARGET_URL" -tAc 'select current_user')"
 local_tables=$(psql -U "$SRC_USER" -d "$SRC_DB" -tAc "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'Builder'")
 if [ "$local_tables" != "1" ]; then
   echo "This database has no Estate Guide tables. Databases and tables found in this container:" >&2
@@ -44,7 +48,12 @@ echo "== Restoring into Neon =="
 if ! pg_restore --no-owner --no-privileges -d "$TARGET_URL" "$DUMP"; then
   echo "pg_restore reported errors (see above)." >&2
 fi
+echo "== Objects in the dump =="
+pg_restore -l "$DUMP" | grep -c "TABLE " || true
 rm -f "$DUMP"
+
+echo "== Tables now in Neon, by schema =="
+psql "$TARGET_URL" -c "$tables_sql"
 
 echo "== Row counts in Neon (should match the local counts above; FileAsset should be 0) =="
 psql "$TARGET_URL" -c "$counts_sql"
