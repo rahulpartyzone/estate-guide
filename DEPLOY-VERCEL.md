@@ -112,7 +112,7 @@ Do steps 3 to 6 in one sitting. Anything saved on the local site after step 3.2 
    | `APP_BASE_URL` | `https://www.yourhomesearch.co.in` |
    | `INVITE_EMAIL_PROVIDER`, `INVITE_FROM_NAME`, `INVITE_FROM_EMAIL`, `BREVO_API_KEY` | your invite email settings |
 
-4. Deploy, then open `https://estate-guide-api.vercel.app/api/v1/healthz`. The build log should show "Applying database migrations" and "No pending migrations".
+4. Deploy, then open `https://estate-guide-nine.vercel.app/api/v1/healthz`. The build log should show "Applying database migrations" and "No pending migrations".
 
 ## 5. Create the web project on Vercel
 
@@ -120,7 +120,7 @@ Do steps 3 to 6 in one sitting. Anything saved on the local site after step 3.2 
    - Project name: `estate-guide-web`
    - Root Directory: `.` (framework: Vite). Build settings come from `vercel.json`.
 2. Environment variables: `VITE_MSG91_WIDGET_ID`, `VITE_MSG91_TOKEN_AUTH`. (`VITE_API_BASE=/api/v1` is already in `.env.production`.)
-3. If the API project's domain is not exactly `estate-guide-api.vercel.app`, update the destination in `vercel.json` and push.
+3. If the API project's domain changes, update the destination in `vercel.json` and push.
 4. Test on `https://estate-guide-web.vercel.app`:
    - [ ] Home, Projects and a project page load with images
    - [ ] Admin login works and stays logged in after a refresh
