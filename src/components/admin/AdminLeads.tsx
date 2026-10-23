@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Loader2, Download } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 
@@ -20,6 +21,22 @@ export default function AdminLeads() {
   const [type, setType] = useState<string>('all'); // 'all' | 'brochure' | 'site_visit' | 'info' | 'preference'
   const [status, setStatus] = useState<string>('all');
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [myAlerts, setMyAlerts] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    api.getOwnLeadAlerts().then((r) => setMyAlerts(Boolean(r?.enabled))).catch(() => setMyAlerts(null));
+  }, []);
+
+  const toggleMyAlerts = async (enabled: boolean) => {
+    setMyAlerts(enabled);
+    try {
+      await api.setOwnLeadAlerts(enabled);
+      toast({ title: enabled ? 'You will get an email for every new lead' : 'New-lead emails turned off' });
+    } catch (e: any) {
+      setMyAlerts(!enabled);
+      toast({ title: 'Could not update your lead alerts', description: e?.message, variant: 'destructive' });
+    }
+  };
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [total, setTotal] = useState(0);
@@ -73,7 +90,13 @@ export default function AdminLeads() {
     <Card>
       <CardHeader className="flex items-center justify-between">
         <CardTitle>Leads</CardTitle>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {myAlerts !== null && (
+            <label className="flex items-center gap-2 text-sm text-muted-foreground mr-2 cursor-pointer">
+              <Switch checked={myAlerts} onCheckedChange={toggleMyAlerts} aria-label="Email me new leads" />
+              Email me new leads
+            </label>
+          )}
           <Select value={type} onValueChange={(v)=>{ setType(v); setPage(1); }}>
             <SelectTrigger className="w-[140px]"><SelectValue placeholder="Type" /></SelectTrigger>
             <SelectContent>

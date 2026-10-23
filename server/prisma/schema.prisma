@@ -34,6 +34,8 @@ model User {
   role           String        // ADMIN | EDITOR (legacy compatibility)
   name           String?
   isActive       Boolean       @default(true)
+  // Gets an email for every new lead (Admin -> Users, or the switch on Admin -> Leads)
+  receivesLeadAlerts Boolean   @default(false)
   lastLoginAt    DateTime?
   userRoles      UserRole[]
   invitesCreated InviteToken[] @relation("InviteCreatedBy")

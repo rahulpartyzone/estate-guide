@@ -37,6 +37,15 @@ class UpdateAdminUserDto {
   @IsOptional()
   @IsString()
   roleId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  receivesLeadAlerts?: boolean;
+}
+
+class LeadAlertsDto {
+  @IsBoolean()
+  enabled!: boolean;
 }
 
 @Controller('admin/users')
@@ -54,6 +63,17 @@ export class UsersController {
   @Get('/me')
   me(@Req() req: any) {
     return this.users.getMe(req.user.sub);
+  }
+
+  /** Any signed-in admin user can turn new-lead emails on or off for themselves. */
+  @Get('/me/lead-alerts')
+  getOwnLeadAlerts(@Req() req: any) {
+    return this.users.getOwnLeadAlerts(req.user.sub);
+  }
+
+  @Put('/me/lead-alerts')
+  setOwnLeadAlerts(@Req() req: any, @Body() body: LeadAlertsDto) {
+    return this.users.setOwnLeadAlerts(req.user.sub, body.enabled);
   }
 
   @Put(':userId')

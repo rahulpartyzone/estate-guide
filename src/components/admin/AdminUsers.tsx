@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
@@ -14,6 +15,7 @@ type AdminUser = {
   email: string;
   role: string;
   isActive: boolean;
+  receivesLeadAlerts?: boolean;
   userRoles?: Array<{ role: { id: string; name: string } }>;
 };
 
@@ -25,6 +27,21 @@ const AdminUsers = () => {
   const [creatingInvite, setCreatingInvite] = useState(false);
 
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [alertSavingId, setAlertSavingId] = useState<string | null>(null);
+
+  const toggleLeadAlerts = async (user: AdminUser, enabled: boolean) => {
+    setUsers((rows) => rows.map((u) => (u.id === user.id ? { ...u, receivesLeadAlerts: enabled } : u)));
+    setAlertSavingId(user.id);
+    try {
+      await api.updateAdminUser(user.id, { receivesLeadAlerts: enabled });
+      toast({ title: enabled ? `${user.email} will get new-lead emails` : `Lead emails turned off for ${user.email}` });
+    } catch (e: any) {
+      setUsers((rows) => rows.map((u) => (u.id === user.id ? { ...u, receivesLeadAlerts: !enabled } : u)));
+      toast({ title: "Could not update lead alerts", description: e?.message, variant: "destructive" });
+    } finally {
+      setAlertSavingId(null);
+    }
+  };
   const [roles, setRoles] = useState<RoleConfig[]>([]);
 
   const [inviteEmail, setInviteEmail] = useState("");
@@ -213,6 +230,10 @@ const AdminUsers = () => {
       <Card>
         <CardHeader>
           <CardTitle>Users</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Users with <strong>Lead alerts</strong> on get an email for every new lead: site visits, info requests,
+            brochure downloads and preference forms.
+          </p>
         </CardHeader>
         <CardContent className="space-y-3">
           {users.length === 0 ? (
@@ -226,7 +247,16 @@ const AdminUsers = () => {
                     Roles: {(user.userRoles || []).map((entry) => entry.role.name).join(", ") || user.role}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                    <Switch
+                      checked={Boolean(user.receivesLeadAlerts)}
+                      disabled={alertSavingId === user.id || !user.isActive}
+                      onCheckedChange={(checked) => toggleLeadAlerts(user, checked)}
+                      aria-label={`Email new leads to ${user.email}`}
+                    />
+                    Lead alerts
+                  </label>
                   <div className="text-sm text-muted-foreground">{user.isActive ? "Active" : "Disabled"}</div>
                   <Button type="button" variant="outline" size="sm" onClick={() => startEdit(user)}>
                     Edit

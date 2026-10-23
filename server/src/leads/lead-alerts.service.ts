@@ -26,9 +26,8 @@ interface AlertLead {
 }
 
 /**
- * Emails the sales team when a lead arrives.
- * Env: LEAD_ALERT_EMAILS (comma-separated recipients; alerts are off when empty)
- *      LEAD_ALERT_TYPES  (optional, comma-separated subset of site_visit,info,brochure,preference; default all)
+ * Emails the sales team when a lead arrives. Recipients are the active admin users with
+ * "Lead alerts" switched on (Admin -> Users, or the switch on Admin -> Leads).
  */
 @Injectable()
 export class LeadAlertsService {
@@ -36,20 +35,19 @@ export class LeadAlertsService {
 
   constructor(private readonly prisma: PrismaService, private readonly mail: MailService) {}
 
-  private recipients() {
-    return (process.env.LEAD_ALERT_EMAILS || '').split(',').map((s) => s.trim()).filter(Boolean);
-  }
-
-  private enabledFor(type: string) {
-    const types = (process.env.LEAD_ALERT_TYPES || '').split(',').map((s) => s.trim()).filter(Boolean);
-    return !types.length || types.includes(type);
+  private async recipients() {
+    const users = await this.prisma.user.findMany({
+      where: { receivesLeadAlerts: true, isActive: true },
+      select: { email: true },
+    });
+    return users.map((u) => u.email).filter(Boolean);
   }
 
   /** Never throws; a failed alert must not fail the visitor's form submission. */
   async notify(lead: AlertLead) {
     try {
-      const to = this.recipients();
-      if (!to.length || !this.enabledFor(lead.type)) return;
+      const to = await this.recipients();
+      if (!to.length) return;
 
       const property = lead.propertyId
         ? await this.prisma.property.findUnique({ where: { id: lead.propertyId }, select: { name: true, city: true, area: true } })

@@ -13,6 +13,7 @@ export class UsersService {
     role: true,
     name: true,
     isActive: true,
+    receivesLeadAlerts: true,
     lastLoginAt: true,
     createdAt: true,
     updatedAt: true,
@@ -80,7 +81,7 @@ export class UsersService {
     });
   }
 
-  async updateUser(userId: string, input: { email?: string; isActive?: boolean; roleId?: string }) {
+  async updateUser(userId: string, input: { email?: string; isActive?: boolean; roleId?: string; receivesLeadAlerts?: boolean }) {
     const existing = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true },
@@ -112,6 +113,7 @@ export class UsersService {
         data: {
           ...(normalizedEmail !== undefined ? { email: normalizedEmail } : {}),
           ...(typeof input.isActive === 'boolean' ? { isActive: input.isActive } : {}),
+          ...(typeof input.receivesLeadAlerts === 'boolean' ? { receivesLeadAlerts: input.receivesLeadAlerts } : {}),
           ...(roleNameForLegacy
             ? { role: roleNameForLegacy.toLowerCase().includes('editor') ? 'EDITOR' : 'ADMIN' }
             : {}),
@@ -137,6 +139,17 @@ export class UsersService {
 
   getMe(userId: string) {
     return this.auth.getAuthorizationContext(userId);
+  }
+
+  async getOwnLeadAlerts(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { receivesLeadAlerts: true } });
+    if (!user) throw new NotFoundException('User not found');
+    return { enabled: user.receivesLeadAlerts };
+  }
+
+  async setOwnLeadAlerts(userId: string, enabled: boolean) {
+    await this.prisma.user.update({ where: { id: userId }, data: { receivesLeadAlerts: enabled } });
+    return { enabled };
   }
 
   getMenu(userId: string) {

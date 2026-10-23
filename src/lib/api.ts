@@ -311,10 +311,14 @@ export const api = {
 
   // Admin onboarding + RBAC
   listAdminUsers() { return request<any[]>(`/admin/users`); },
-  updateAdminUser(userId: string, payload: { email?: string; isActive?: boolean; roleId?: string }) {
+  updateAdminUser(userId: string, payload: { email?: string; isActive?: boolean; roleId?: string; receivesLeadAlerts?: boolean }) {
     return request<any>(`/admin/users/${userId}`, { method: 'PUT', body: JSON.stringify(payload) });
   },
   getAdminMe() { return request<any>(`/admin/users/me`); },
+  getOwnLeadAlerts() { return request<{ enabled: boolean }>(`/admin/users/me/lead-alerts`); },
+  setOwnLeadAlerts(enabled: boolean) {
+    return request<{ enabled: boolean }>(`/admin/users/me/lead-alerts`, { method: 'PUT', body: JSON.stringify({ enabled }) });
+  },
   getAdminMenu() { return request<any[]>(`/admin/users/menu`); },
   createUserInvite(payload: { email: string; roleName: string }) {
     return request<any>(`/admin/users/invite`, { method: 'POST', body: JSON.stringify(payload) });
