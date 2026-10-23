@@ -132,6 +132,8 @@ export class LeadsService {
     if (!res || (res.type && String(res.type).toLowerCase() !== 'success')) {
       throw new BadRequestException('Widget token invalid');
     }
+    // Prefer the number MSG91 says was verified over the one the browser sent.
+    phone = this.msg91.verifiedNumber(res, accessToken) || phone;
     const property = await this.prisma.property.findUnique({ where: { id: propertyId } });
     if (!property || !property.brochureUrl) throw new NotFoundException('Brochure not available');
     const b = property.brochureUrl;

@@ -3,9 +3,10 @@ import { WishlistService } from './wishlist.service';
 import { WishlistController } from './wishlist.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
+import { BuyersModule } from '../buyers/buyers.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, BuyersModule],
   providers: [WishlistService],
   controllers: [WishlistController],
   exports: [WishlistService],

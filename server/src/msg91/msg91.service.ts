@@ -131,6 +131,30 @@ export class Msg91Service {
   }
 
   /**
+   * The phone number (digits) a successful verifyAccessToken response vouches for. MSG91 puts it in
+   * `message` (e.g. "919876543210"); other fields and the token's own payload are checked as fallbacks,
+   * since MSG91 doesn't document the response. Returns '' when no number can be found.
+   */
+  verifiedNumber(verifyResponse: any, accessToken: string): string {
+    const candidates: unknown[] = [];
+    const r = verifyResponse || {};
+    candidates.push(r.message, r.identifier, r.mobile, r.phone, r.data?.identifier, r.data?.mobile, r.data?.message);
+    try {
+      const payload = JSON.parse(Buffer.from(accessToken.split('.')[1] || '', 'base64url').toString('utf8'));
+      candidates.push(payload?.identifier, payload?.mobile, payload?.phone, payload?.sub, payload?.data?.identifier);
+    } catch {
+      /* not a JWT */
+    }
+    for (const c of candidates) {
+      if (typeof c !== 'string' && typeof c !== 'number') continue;
+      const digits = String(c).replace(/\D/g, '');
+      if (/^\d{10,15}$/.test(digits) && String(c).replace(/[\s+()-]/g, '') === digits) return digits;
+    }
+    if (this.config.debug) this.logger.debug(`[MSG91] No number in verify response; keys: ${Object.keys(r).join(',')}`);
+    return '';
+  }
+
+  /**
    * Initiate MSG91 Widget OTP delivery to an identifier (email or mobile).
    * POST https://api.msg91.com/api/v5/widget/sendOtp
    */

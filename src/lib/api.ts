@@ -21,6 +21,8 @@ try {
 
 export interface ApiError { status: number; message: string }
 
+export interface Buyer { id: string; phone: string; name: string | null; email: string | null }
+
 export interface NewsletterInput {
   subject: string;
   previewText?: string;
@@ -160,6 +162,16 @@ export const api = {
   removeFromWishlist(anonId: string, propertyId: string) {
     return request<void>(`/wishlist/${propertyId}`, { method: 'DELETE', headers: { 'X-Anon-Id': anonId } });
   },
+
+  // Buyer accounts (phone OTP sign-in; the session is an httpOnly cookie)
+  buyerMe() { return request<{ buyer: Buyer | null }>(`/buyer/me`); },
+  buyerWidgetLogin(anonId: string, payload: { accessToken: string; phone: string; name?: string }) {
+    return request<{ buyer: Buyer; merged: number }>(`/buyer/auth/widget`, { method: 'POST', body: JSON.stringify(payload), headers: { 'X-Anon-Id': anonId } });
+  },
+  buyerUpdate(payload: { name?: string; email?: string }) {
+    return request<{ buyer: Buyer }>(`/buyer/me`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  buyerLogout() { return request<void>(`/buyer/logout`, { method: 'POST' }); },
 
   // Public: published testimonials only
   listTestimonials() {

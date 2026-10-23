@@ -1,7 +1,18 @@
 import { Link } from "react-router-dom";
 import { useSavedIds } from "@/lib/saved";
 import { Button } from "@/components/ui/button";
-import { Building2, Menu, X } from "lucide-react";
+import { Building2, Heart, LogOut, Menu, UserRound, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { logoutBuyer, openBuyerLogin, useBuyerState } from "@/lib/buyer";
+import { formatPhone } from "@/lib/otpWidget";
+import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { absolutizeApiUrl } from "@/lib/url";
@@ -12,6 +23,12 @@ const Header = () => {
   const [logoUrl, setLogoUrl] = useState("");
   const [companyName, setCompanyName] = useState("YourHomeSearch");
   const savedCount = useSavedIds().length;
+  const { buyer, loaded: buyerLoaded } = useBuyerState();
+  const signOut = async () => {
+    await logoutBuyer();
+    setIsMobileMenuOpen(false);
+    toast.success("Signed out");
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +93,36 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
+            {buyerLoaded && !buyer && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => openBuyerLogin()}>
+                <UserRound className="h-4 w-4" /> Sign in
+              </Button>
+            )}
+            {buyer && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <UserRound className="h-4 w-4" />
+                    <span className="max-w-[120px] truncate">{buyer.name?.split(" ")[0] || "My account"}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="font-medium">{buyer.name || "Signed in"}</div>
+                    <div className="text-xs text-muted-foreground">{formatPhone(buyer.phone)}</div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/saved" className="cursor-pointer">
+                      <Heart className="mr-2 h-4 w-4" /> Saved projects{savedCount ? ` (${savedCount})` : ""}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={signOut} className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" /> Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -108,6 +155,31 @@ const Header = () => {
                   {item.name}
                 </Link>
               ))}
+              <div className="border-t border-border pt-2 mt-2">
+                {buyerLoaded && !buyer && (
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-primary"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      openBuyerLogin();
+                    }}
+                  >
+                    <UserRound className="h-4 w-4" /> Sign in
+                  </button>
+                )}
+                {buyer && (
+                  <>
+                    <div className="px-3 py-2 text-sm">
+                      <div className="font-medium text-foreground">{buyer.name || "Signed in"}</div>
+                      <div className="text-muted-foreground">{formatPhone(buyer.phone)}</div>
+                    </div>
+                    <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-left text-muted-foreground hover:text-foreground" onClick={signOut}>
+                      <LogOut className="h-4 w-4" /> Sign out
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}

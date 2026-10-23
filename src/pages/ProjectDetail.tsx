@@ -18,6 +18,7 @@ import { mapBackendProperty, formatINRShort } from '@/lib/propertyMapper';
 import { absolutizeApiUrl } from "@/lib/url";
 import type { Property } from '@/types/property';
 import { toggleSaved, useSavedIds } from '@/lib/saved';
+import { openBuyerLogin, useBuyer } from '@/lib/buyer';
 import { usePageTitle } from '@/lib/pageTitle';
 import ProjectEnquiryDialog, { type EnquiryMode } from '@/components/ProjectEnquiryDialog';
 import EmiCalculator from '@/components/EmiCalculator';
@@ -29,6 +30,7 @@ const ProjectDetail = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const savedIds = useSavedIds();
+  const buyer = useBuyer();
   const [enquiry, setEnquiry] = useState<EnquiryMode | null>(null);
   const compareIds = useCompareIds();
   const isComparing = Boolean(id && compareIds.includes(id));
@@ -262,7 +264,14 @@ const ProjectDetail = () => {
     if (!id) return;
     try {
       const nowSaved = await toggleSaved(id);
-      toast.success(nowSaved ? "Saved. Find it under Saved in the menu." : "Removed from saved projects");
+      if (nowSaved && !buyer) {
+        toast.success("Saved on this device", {
+          description: "Sign in to see it on your other devices too.",
+          action: { label: "Sign in", onClick: () => openBuyerLogin() },
+        });
+      } else {
+        toast.success(nowSaved ? "Saved. Find it under Saved in the menu." : "Removed from saved projects");
+      }
     } catch {
       toast.error("Couldn't update saved projects. Please try again.");
     }

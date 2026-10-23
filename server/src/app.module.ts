@@ -11,6 +11,7 @@ import { SubscribersModule } from './subscribers/subscribers.module';
 import { NewslettersModule } from './newsletters/newsletters.module';
 import { LeadsModule } from './leads/leads.module';
 import { WishlistModule } from './wishlist/wishlist.module';
+import { BuyersModule } from './buyers/buyers.module';
 import { AgentsModule } from './agents/agents.module';
 import { NeighborhoodsModule } from './neighborhoods/neighborhoods.module';
 import { AdminStatsController } from './stats/admin-stats.controller';
@@ -35,6 +36,7 @@ import { MailModule } from './mail/mail.module';
     NewslettersModule,
     LeadsModule,
     WishlistModule,
+    BuyersModule,
     AgentsModule,
     NeighborhoodsModule,
   Msg91Module,

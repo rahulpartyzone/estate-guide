@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { mapBackendProperty } from "@/lib/propertyMapper";
 import { useSavedIds } from "@/lib/saved";
+import { openBuyerLogin, useBuyerState } from "@/lib/buyer";
 import type { Property } from "@/types/property";
 
 const Saved = () => {
   usePageTitle("Saved projects");
   const savedIds = useSavedIds();
+  const { buyer, loaded: buyerLoaded } = useBuyerState();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -45,8 +47,21 @@ const Saved = () => {
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Saved Projects</h1>
         <p className="text-muted-foreground mb-8">
-          Projects you saved on this device. Tap the heart on a project page to add or remove one.
+          {buyer ? "Projects saved to your account, on every device you sign in on." : "Projects you saved on this device."} Tap the heart on a
+          project page to add or remove one.
         </p>
+
+        {buyerLoaded && !buyer && (
+          <div className="mb-8 flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium text-foreground">Keep your list on your phone and laptop</p>
+              <p className="text-sm text-muted-foreground">Sign in with your mobile number. No password, just a code by SMS.</p>
+            </div>
+            <Button onClick={() => openBuyerLogin()} className="shrink-0">
+              Sign in
+            </Button>
+          </div>
+        )}
 
         {loading && properties.length === 0 && <div className="text-sm text-muted-foreground">Loading saved projects...</div>}
 

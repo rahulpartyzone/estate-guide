@@ -17,6 +17,7 @@ import AnalyticsTracker from "./components/AnalyticsTracker";
 import CompareBar from "./components/CompareBar";
 import Compare from "./pages/Compare";
 import Unsubscribe from "./pages/Unsubscribe";
+import BuyerLoginDialog from "./components/BuyerLoginDialog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
       <BrowserRouter>
         <AnalyticsTracker />
         <CompareBar />
+        <BuyerLoginDialog />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/projects" element={<Projects />} />

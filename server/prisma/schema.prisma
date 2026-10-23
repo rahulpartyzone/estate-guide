@@ -400,6 +400,19 @@ model BrochureOtp {
   @@index([ip, createdAt])
 }
 
+/// A home buyer who signed in with their phone number (OTP), so saved projects follow them to any device.
+model Buyer {
+  id          String    @id @default(uuid())
+  /// Digits with country code, e.g. 919876543210
+  phone       String    @unique
+  name        String?
+  email       String?
+  createdAt   DateTime  @default(now())
+  lastLoginAt DateTime?
+}
+
+/// Saved projects. The owner is a signed-in buyer's id or, for visitors without an account,
+/// the random id their browser keeps (sent as X-Anon-Id).
 model Wishlist {
   anonId     String
   propertyId String

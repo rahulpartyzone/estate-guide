@@ -1,18 +1,22 @@
 import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { WishlistService } from './wishlist.service';
+import { BuyerSessionService } from '../buyers/buyer-session.service';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Saved projects for anonymous visitors. The browser keeps a random id in localStorage and sends it
- * as X-Anon-Id; nothing else identifies the visitor.
+ * Saved projects. A signed-in buyer's list belongs to their account (buyer session cookie); for
+ * everyone else the browser keeps a random id in localStorage and sends it as X-Anon-Id.
  */
 @Controller('wishlist')
 export class WishlistController {
-  constructor(private readonly svc: WishlistService) {}
+  constructor(private readonly svc: WishlistService, private readonly session: BuyerSessionService) {}
 
+  /** Whose list: the signed-in buyer, else the anonymous browser id. */
   private anonId(req: Request): string | undefined {
+    const buyerId = this.session.buyerId(req);
+    if (buyerId) return buyerId;
     const id = req.header('X-Anon-Id') || (req as any).cookies?.anonId;
     return id && UUID_RE.test(id) ? id : undefined;
   }

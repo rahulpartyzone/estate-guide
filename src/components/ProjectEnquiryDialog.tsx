@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useBuyer } from "@/lib/buyer";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,13 +33,20 @@ const ProjectEnquiryDialog = ({ mode, onClose, propertyId, propertyName }: Props
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const buyer = useBuyer();
 
   useEffect(() => {
     if (mode) {
       setDone(false);
+      // Signed-in buyers don't have to type their details again
+      if (buyer) {
+        setName((v) => v || buyer.name || "");
+        setPhone((v) => v || buyer.phone.replace(/\D/g, "").slice(-10));
+        setEmail((v) => v || buyer.email || "");
+      }
       setMessage(mode === "info" ? `I'd like more details about ${propertyName}: pricing, floor plans and availability.` : "");
     }
-  }, [mode, propertyName]);
+  }, [mode, propertyName, buyer]);
 
   const isVisit = mode === "site_visit";
   const phoneDigits = phone.replace(/\D/g, "");

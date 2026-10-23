@@ -4,7 +4,7 @@ const ONE_MINUTE = 60 * 1000;
 const FIFTEEN_MIN = 15 * ONE_MINUTE;
 const SEVEN_DAYS = 7 * 24 * 60 * ONE_MINUTE;
 
-function getCookieConfig() {
+export function getCookieConfig() {
   const raw = (process.env.COOKIE_SAMESITE || 'none').toLowerCase();
   let sameSite: boolean | 'lax' | 'strict' | 'none' = raw === 'lax' || raw === 'strict' || raw === 'none' ? (raw as any) : 'none';
   const secure = (process.env.COOKIE_SECURE || 'true').toLowerCase() !== 'false';
