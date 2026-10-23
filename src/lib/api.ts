@@ -290,7 +290,7 @@ export const api = {
   },
 
   // Admin Leads
-  listLeads(params: { type?: string; status?: string; page?: number; pageSize?: number } = {}) {
+  listLeads(params: { type?: string; status?: string; assignedTo?: string; due?: string; page?: number; pageSize?: number } = {}) {
     const search = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') search.append(k, String(v));
@@ -306,6 +306,19 @@ export const api = {
   },
   updateLeadStatus(id: string, status: string) {
     return request<any>(`/admin/leads/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  },
+  getLead(id: string) {
+    return request<any>(`/admin/leads/${id}`);
+  },
+  /** Any of: status, assignedToId (null = no owner), nextFollowUpAt (ISO string, null = clear) */
+  updateLead(id: string, payload: { status?: string; assignedToId?: string | null; nextFollowUpAt?: string | null }) {
+    return request<any>(`/admin/leads/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  addLeadNote(id: string, body: string) {
+    return request<any>(`/admin/leads/${id}/notes`, { method: 'POST', body: JSON.stringify({ body }) });
+  },
+  listLeadAssignees() {
+    return request<{ id: string; email: string; name?: string | null }[]>(`/admin/leads/assignees`);
   },
   exportLeadsCsv(params: { type?: string; months?: number } = {}): Promise<Blob> {
     const search = new URLSearchParams();

@@ -39,6 +39,8 @@ model User {
   lastLoginAt    DateTime?
   userRoles      UserRole[]
   invitesCreated InviteToken[] @relation("InviteCreatedBy")
+  assignedLeads  Lead[]        @relation("LeadAssignee")
+  leadNotes      LeadNote[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 }
@@ -312,11 +314,33 @@ model Lead {
   utmCampaign           String?
   attribution           Json?
   preferredDate DateTime?
-  status        String    @default("new") // new|contacted|closed|invalid
+  // Pipeline: new, contacted, visit_scheduled, visited, negotiating, booked, lost, invalid (closed = older leads)
+  status        String    @default("new")
+  assignedToId  String?
+  assignedTo    User?     @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  nextFollowUpAt DateTime?
+  notes         LeadNote[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   @@index([utmSource])
+  @@index([assignedToId])
+  @@index([nextFollowUpAt])
+  @@index([status])
+}
+
+/// Timeline on a lead: notes typed by the team, plus automatic entries for status, owner and follow-up changes.
+model LeadNote {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  kind      String   @default("note") // note | status | assignment | follow_up
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
 }
 
 model BrochureOtp {

@@ -3,39 +3,59 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Loader2, Download } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { Loader2, Download, CalendarClock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
+import { FINISHED_STATUSES, LEAD_STATUSES, LEAD_TYPE_LABELS, leadSource, userLabel } from '@/constants/leads';
+import LeadDetailSheet from './LeadDetailSheet';
 
-// "google / cpc", "facebook.com (referral)", or "Direct" for leads with nothing recorded
-function sourceOf(l: any): string {
-  if (l.utmSource) return l.utmMedium ? `${l.utmSource} / ${l.utmMedium}` : l.utmSource;
-  const ref = l.attribution?.referrer;
-  if (ref) {
-    try { return `${new URL(ref).hostname.replace(/^www\./, '')} (referral)`; } catch { /* not a URL */ }
-  }
-  return 'Direct';
-}
+type Assignee = { id: string; email: string; name?: string | null };
 
-const STATUSES = [
-  { value: 'new', label: 'New' },
-  { value: 'contacted', label: 'Contacted' },
-  { value: 'closed', label: 'Closed' },
-  { value: 'invalid', label: 'Invalid' },
-];
+const shortDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
 
 export default function AdminLeads() {
   const [loading, setLoading] = useState(false);
   const [leads, setLeads] = useState<any[]>([]);
-  const [type, setType] = useState<string>('all'); // 'all' | 'brochure' | 'site_visit' | 'info' | 'preference'
+  const [type, setType] = useState<string>('all');
   const [status, setStatus] = useState<string>('all');
+  const [owner, setOwner] = useState<string>('all'); // all | me | unassigned | <userId>
+  const [dueOnly, setDueOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(25);
+  const [total, setTotal] = useState(0);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [myAlerts, setMyAlerts] = useState<boolean | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     api.getOwnLeadAlerts().then((r) => setMyAlerts(Boolean(r?.enabled))).catch(() => setMyAlerts(null));
+    api.listLeadAssignees().then(setAssignees).catch(() => setAssignees([]));
   }, []);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await api.listLeads({
+        type: type === 'all' ? undefined : type,
+        status: status === 'all' ? undefined : status,
+        assignedTo: owner === 'all' ? undefined : owner,
+        due: dueOnly ? 'today' : undefined,
+        page,
+        pageSize,
+      });
+      setLeads(res.data || []);
+      setTotal(res.meta?.total || 0);
+    } catch (e: any) {
+      toast({ title: 'Load failed', description: e?.message || 'Unable to fetch leads', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { load(); }, [type, status, owner, dueOnly, page, pageSize]);
 
   const toggleMyAlerts = async (enabled: boolean) => {
     setMyAlerts(enabled);
@@ -47,28 +67,10 @@ export default function AdminLeads() {
       toast({ title: 'Could not update your lead alerts', description: e?.message, variant: 'destructive' });
     }
   };
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [total, setTotal] = useState(0);
-  const { toast } = useToast();
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const typeParam = type === 'all' ? undefined : type;
-      const res = await api.listLeads({ type: typeParam, status: status === 'all' ? undefined : status, page, pageSize });
-      setLeads(res.data || []);
-      setTotal(res.meta?.total || 0);
-    } catch (e: any) {
-      toast({ title: 'Load failed', description: e?.message || 'Unable to fetch leads', variant: 'destructive' });
-    } finally { setLoading(false); }
-  };
-  useEffect(() => { load(); }, [type, status, page, pageSize]);
 
   const exportCsv = async () => {
     try {
-      const typeParam = type === 'all' ? undefined : type;
-      const blob = await api.exportLeadsCsv({ type: typeParam, months: 6 });
+      const blob = await api.exportLeadsCsv({ type: type === 'all' ? undefined : type, months: 6 });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -85,46 +87,63 @@ export default function AdminLeads() {
     setLeads((rows) => rows.map((l) => (l.id === id ? { ...l, status: next } : l)));
     setSavingId(id);
     try {
-      await api.updateLeadStatus(id, next);
+      const updated = await api.updateLead(id, { status: next });
+      setLeads((rows) => rows.map((l) => (l.id === id ? { ...l, ...updated } : l)));
     } catch (e: any) {
       setLeads((rows) => rows.map((l) => (l.id === id ? { ...l, status: previous } : l)));
-      toast({ title: 'Could not update status', description: e?.message || 'Please try again', variant: 'destructive' });
+      toast({ title: 'Could not update stage', description: e?.message || 'Please try again', variant: 'destructive' });
     } finally {
       setSavingId(null);
     }
   };
 
+  const onChanged = (updated: any) => setLeads((rows) => rows.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)));
+
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
   return (
     <Card>
-      <CardHeader className="flex items-center justify-between">
-        <CardTitle>Leads</CardTitle>
+      <CardHeader className="space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle>Leads</CardTitle>
+          <div className="flex items-center gap-3 flex-wrap">
+            {myAlerts !== null && (
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <Switch checked={myAlerts} onCheckedChange={toggleMyAlerts} aria-label="Email me new leads" />
+                Email me new leads
+              </label>
+            )}
+            <Button onClick={exportCsv} className="gap-2" size="sm" variant="outline"><Download className="h-4 w-4" /> Export (6m)</Button>
+          </div>
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {myAlerts !== null && (
-            <label className="flex items-center gap-2 text-sm text-muted-foreground mr-2 cursor-pointer">
-              <Switch checked={myAlerts} onCheckedChange={toggleMyAlerts} aria-label="Email me new leads" />
-              Email me new leads
-            </label>
-          )}
-          <Select value={type} onValueChange={(v)=>{ setType(v); setPage(1); }}>
+          <Select value={type} onValueChange={(v) => { setType(v); setPage(1); }}>
             <SelectTrigger className="w-[140px]"><SelectValue placeholder="Type" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="brochure">Brochure</SelectItem>
-              <SelectItem value="site_visit">Site Visit</SelectItem>
-              <SelectItem value="info">Info</SelectItem>
-              <SelectItem value="preference">Preference</SelectItem>
+              <SelectItem value="all">All types</SelectItem>
+              {Object.entries(LEAD_TYPE_LABELS).map(([v, label]) => <SelectItem key={v} value={v}>{label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={status} onValueChange={(v)=>{ setStatus(v); setPage(1); }}>
-            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Stage" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Any status</SelectItem>
-              {STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+              <SelectItem value="all">Any stage</SelectItem>
+              {LEAD_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button onClick={exportCsv} className="gap-2" size="sm"><Download className="h-4 w-4" /> Export (6m)</Button>
+          <Select value={owner} onValueChange={(v) => { setOwner(v); setPage(1); }}>
+            <SelectTrigger className="w-[170px]"><SelectValue placeholder="Owner" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any owner</SelectItem>
+              <SelectItem value="me">Assigned to me</SelectItem>
+              <SelectItem value="unassigned">No owner</SelectItem>
+              {assignees.map((u) => <SelectItem key={u.id} value={u.id}>{userLabel(u)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button size="sm" variant={dueOnly ? 'default' : 'outline'} className="gap-1.5" onClick={() => { setDueOnly((d) => !d); setPage(1); }} aria-pressed={dueOnly}>
+            <CalendarClock className="h-4 w-4" /> Follow-ups due
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -132,57 +151,60 @@ export default function AdminLeads() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Property</TableHead>
+                <TableHead>Received</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Preference</TableHead>
-                <TableHead>Loan</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Project</TableHead>
                 <TableHead>Source</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead>Follow-up</TableHead>
+                <TableHead>Stage</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={10} className="text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></TableCell></TableRow>
               ) : leads.length ? (
-                leads.map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell className="whitespace-nowrap text-xs">{l.createdAt ? new Date(l.createdAt).toLocaleString() : '-'}</TableCell>
-                    <TableCell className="capitalize">{l.type || '-'}</TableCell>
-                    <TableCell>{(l.property && l.property.name) || l.propertyId || '-'}</TableCell>
-                    <TableCell>{l.name || '-'}</TableCell>
-                    <TableCell>{l.phone || '-'}</TableCell>
-                    <TableCell>{l.email || '-'}</TableCell>
-                    <TableCell className="text-xs">{[l.preferredPropertyType, l.preferredBudgetRange].filter(Boolean).join(' • ') || '-'}</TableCell>
-                    <TableCell>{typeof l.needsHomeLoanAssistance === 'boolean' ? (l.needsHomeLoanAssistance ? 'Yes' : 'No') : '-'}</TableCell>
-                    <TableCell className="text-xs whitespace-nowrap" title={l.utmCampaign ? `Campaign: ${l.utmCampaign}` : undefined}>{sourceOf(l)}{l.utmCampaign ? ` · ${l.utmCampaign}` : ''}</TableCell>
-                    <TableCell>
-                      <Select value={l.status || 'new'} onValueChange={(v) => changeStatus(l.id, v)} disabled={savingId === l.id}>
-                        <SelectTrigger className="h-8 w-[120px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                  </TableRow>
-                ))
+                leads.map((l) => {
+                  const overdue = l.nextFollowUpAt && !FINISHED_STATUSES.includes(l.status) && new Date(l.nextFollowUpAt).getTime() < Date.now();
+                  return (
+                    <TableRow key={l.id} className="cursor-pointer" onClick={() => setOpenId(l.id)}>
+                      <TableCell className="whitespace-nowrap text-xs">{shortDate(l.createdAt)}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{l.name || '-'}</div>
+                        <div className="text-xs text-muted-foreground">{l.phone}{l._count?.notes ? ` · ${l._count.notes} note${l._count.notes === 1 ? '' : 's'}` : ''}</div>
+                      </TableCell>
+                      <TableCell className="text-sm">{LEAD_TYPE_LABELS[l.type] || l.type || '-'}</TableCell>
+                      <TableCell className="text-sm">{l.property?.name || '-'}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{leadSource(l)}{l.utmCampaign ? ` · ${l.utmCampaign}` : ''}</TableCell>
+                      <TableCell className="text-sm">{userLabel(l.assignedTo) || <span className="text-muted-foreground">-</span>}</TableCell>
+                      <TableCell className={`text-xs whitespace-nowrap ${overdue ? 'text-destructive font-medium' : ''}`}>{shortDate(l.nextFollowUpAt) || '-'}</TableCell>
+                      <TableCell onClick={stop}>
+                        <Select value={l.status || 'new'} onValueChange={(v) => changeStatus(l.id, v)} disabled={savingId === l.id}>
+                          <SelectTrigger className="h-8 w-[150px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {LEAD_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
-                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">No leads</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">No leads</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </div>
         <div className="flex items-center justify-between mt-3 text-sm">
-          <div>Page {page} of {pages} ({total} total)</div>
+          <div>Page {page} of {pages} ({total} total) · click a lead for details, owner, follow-up and notes</div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Prev</Button>
-            <Button size="sm" variant="outline" disabled={page>=pages} onClick={()=>setPage(p=>Math.min(pages,p+1))}>Next</Button>
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Prev</Button>
+            <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setPage((p) => Math.min(pages, p + 1))}>Next</Button>
           </div>
         </div>
       </CardContent>
+      <LeadDetailSheet leadId={openId} assignees={assignees} onClose={() => setOpenId(null)} onChanged={onChanged} />
     </Card>
   );
 }

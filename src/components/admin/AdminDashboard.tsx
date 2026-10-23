@@ -15,6 +15,8 @@ type Stats = {
   leadsLast7Days: number;
   leadsLast30Days: number;
   newLeads: number;
+  followUpsDue?: number;
+  unassignedOpen?: number;
   leadsByMonth: MonthRow[];
   topProjects: { id: string; name: string; views: number; saves: number; leads: number }[];
   leadSources?: { source: string; count: number }[];
@@ -77,14 +79,14 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Tile label="New leads to follow up" value={stats.newLeads} hint="Status: New" />
+        <Tile label="Follow-ups due today" value={stats.followUpsDue ?? 0} hint="Including overdue" />
+        <Tile label="New leads, not yet contacted" value={stats.newLeads} hint="Stage: New" />
+        <Tile label="Open leads with no owner" value={stats.unassignedOpen ?? 0} />
         <Tile label="Leads, last 7 days" value={stats.leadsLast7Days} />
         <Tile label="Leads, last 30 days" value={stats.leadsLast30Days} />
         <Tile label="All leads" value={stats.leads} />
         <Tile label="Projects" value={stats.properties} />
-        <Tile label="Builders" value={stats.builders} />
         <Tile label="Newsletter subscribers" value={stats.subscribers} />
-        <Tile label="Published testimonials" value={stats.testimonials} />
       </div>
 
       <Card>

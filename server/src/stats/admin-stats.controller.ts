@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtCookieAuthGuard } from '../auth/jwt.guard';
 import { PermissionsGuard } from '../auth/permissions.guard';
 import { RequirePermissions } from '../auth/permissions.decorator';
+import { FINISHED_STATUSES } from '../leads/dtos';
+import { endOfTodayIst } from '../leads/lead-pipeline.service';
 
 const IST_OFFSET_MS = 330 * 60 * 1000; // months are bucketed in India time
 const MONTHS = 6;
@@ -37,7 +39,7 @@ export class AdminStatsController {
     const istNow = new Date(now + IST_OFFSET_MS);
     const firstMonth = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth() - (MONTHS - 1), 1) - IST_OFFSET_MS);
 
-    const [properties, builders, leads, subscribers, testimonials, leadsLast7Days, leadsLast30Days, newLeads, recentLeads, projects, last30] =
+    const [properties, builders, leads, subscribers, testimonials, leadsLast7Days, leadsLast30Days, newLeads, recentLeads, projects, last30, followUpsDue, unassignedOpen] =
       await Promise.all([
         this.prisma.property.count(),
         this.prisma.builder.count(),
@@ -55,6 +57,8 @@ export class AdminStatsController {
           where: { createdAt: { gte: new Date(now - 30 * day) } },
           select: { utmSource: true, utmMedium: true, attribution: true },
         }),
+        this.prisma.lead.count({ where: { nextFollowUpAt: { lte: endOfTodayIst(now) }, status: { notIn: FINISHED_STATUSES } } }),
+        this.prisma.lead.count({ where: { assignedToId: null, status: { notIn: FINISHED_STATUSES } } }),
       ]);
 
     const bySource = new Map<string, number>();
@@ -98,6 +102,8 @@ export class AdminStatsController {
       leadsLast7Days,
       leadsLast30Days,
       newLeads,
+      followUpsDue,
+      unassignedOpen,
       leadsByMonth: Array.from(buckets.values()),
       topProjects,
       leadSources,

@@ -1,4 +1,4 @@
-import { IsDateString, IsEmail, IsIn, IsInt, IsObject, Matches, MaxLength, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsEmail, IsIn, IsInt, IsObject, IsUUID, Matches, MaxLength, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, Max, Min } from 'class-validator';
 
 /** Campaign info captured on the visitor's first visit (utm_*, gclid, referrer...). Sanitised in attribution.ts. */
 class WithAttribution {
@@ -53,11 +53,31 @@ export class OTPVerifyDto extends WithAttribution {
   contact?: string; // phone or email
 }
 
-export const LEAD_STATUSES = ['new', 'contacted', 'closed', 'invalid'] as const;
+// Pipeline stages, in order. 'closed' is kept for leads marked closed before the pipeline existed.
+export const LEAD_STATUSES = ['new', 'contacted', 'visit_scheduled', 'visited', 'negotiating', 'booked', 'lost', 'invalid', 'closed'] as const;
+/** Stages that need no more follow-up. */
+export const FINISHED_STATUSES = ['booked', 'lost', 'invalid', 'closed'];
 
-export class LeadStatusUpdateDto {
+/** Any combination; omitted fields are left alone, null clears owner / follow-up. */
+export class LeadUpdateDto {
+  @IsOptional()
   @IsIn(LEAD_STATUSES as unknown as string[])
-  status!: string;
+  status?: string;
+
+  @IsOptional()
+  @IsUUID()
+  assignedToId?: string | null;
+
+  @IsOptional()
+  @IsDateString()
+  nextFollowUpAt?: string | null;
+}
+
+export class LeadNoteDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(4000)
+  body!: string;
 }
 
 export class LeadPreferenceDto extends WithAttribution {

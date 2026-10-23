@@ -152,27 +152,6 @@ export class LeadsService {
     return { downloadUrl: b };
   }
 
-  async list(type?: string, status?: string, page = 1, pageSize = 25) {
-    const where: any = {};
-    if (type) where.type = type;
-    if (status) where.status = status;
-    const total = await this.prisma.lead.count({ where });
-    const data = await this.prisma.lead.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      include: { property: { select: { id: true, name: true } } },
-    });
-    return { data, meta: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) } };
-  }
-
-  async updateStatus(id: string, status: string) {
-    const exists = await this.prisma.lead.findUnique({ where: { id }, select: { id: true } });
-    if (!exists) throw new NotFoundException('Lead not found');
-    return this.prisma.lead.update({ where: { id }, data: { status } });
-  }
-
   /**
    * Initiates MSG91 widget OTP send for a contact identifier. Returns provider response.
    */
