@@ -62,12 +62,12 @@ const EmiCalculator = ({ priceMin, priceMax, onLoanHelp }: Props) => {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label htmlFor="emi-rate">Interest rate (% a year)</Label>
+          <Label htmlFor="emi-rate">Interest rate (%)</Label>
           <Input id="emi-rate" type="number" inputMode="decimal" min={1} max={20} step={0.05} value={rate}
             onChange={(e) => setRate(clamp(Number(e.target.value) || 0, 0, 30))} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="emi-years">Loan term (years)</Label>
+          <Label htmlFor="emi-years">Term (years)</Label>
           <Input id="emi-years" type="number" inputMode="numeric" min={1} max={30} step={1} value={years}
             onChange={(e) => setYears(clamp(Math.round(Number(e.target.value) || 0), 1, 30))} />
         </div>
