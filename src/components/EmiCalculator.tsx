@@ -32,11 +32,14 @@ const EmiCalculator = ({ priceMin, priceMax, onLoanHelp }: Props) => {
   const step = Math.max(10_000, Math.round((hi - lo) / 100 / 10_000) * 10_000 || 10_000);
 
   return (
-    <Card className="p-6 space-y-5">
-      <h3 className="font-bold text-lg flex items-center gap-2">
-        <Calculator className="h-5 w-5 text-primary" aria-hidden="true" /> EMI calculator
-      </h3>
+    <Card className="p-6">
+      <h2 className="text-2xl font-bold text-foreground flex items-center gap-2 mb-1">
+        <Calculator className="h-6 w-6 text-primary" aria-hidden="true" /> EMI calculator
+      </h2>
+      <p className="text-sm text-muted-foreground mb-6">See what your monthly home-loan payment could be for this project.</p>
 
+      <div className="grid gap-8 md:grid-cols-2">
+      <div className="space-y-5">
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <Label>Property price</Label>
@@ -69,11 +72,14 @@ const EmiCalculator = ({ priceMin, priceMax, onLoanHelp }: Props) => {
             onChange={(e) => setYears(clamp(Math.round(Number(e.target.value) || 0), 1, 30))} />
         </div>
       </div>
+      </div>
 
-      <div className="rounded-lg bg-muted/50 p-4 space-y-1">
+      <div className="flex flex-col gap-4">
+      <div className="rounded-lg bg-primary/5 border border-primary/15 p-5 space-y-1">
         <div className="text-sm text-muted-foreground">Monthly EMI</div>
-        <div className="text-3xl font-bold text-foreground tabular-nums">{inr(emi)}</div>
-        <div className="grid grid-cols-3 gap-2 pt-2 text-xs">
+        <div className="text-4xl font-bold text-foreground tabular-nums">{inr(emi)}</div>
+        <div className="text-xs text-muted-foreground">for {years} year{years === 1 ? "" : "s"} at {rate}% a year</div>
+        <div className="grid grid-cols-3 gap-2 pt-3 text-xs">
           <div><div className="text-muted-foreground">Loan</div><div className="font-medium tabular-nums">{inrShort(loan)}</div></div>
           <div><div className="text-muted-foreground">Total interest</div><div className="font-medium tabular-nums">{inrShort(interest)}</div></div>
           <div><div className="text-muted-foreground">Total paid</div><div className="font-medium tabular-nums">{inrShort(totalPaid)}</div></div>
@@ -84,8 +90,10 @@ const EmiCalculator = ({ priceMin, priceMax, onLoanHelp }: Props) => {
         An estimate only. Your bank's rate, fees and eligibility decide the actual EMI.
       </p>
       {onLoanHelp && (
-        <Button variant="outline" className="w-full" onClick={onLoanHelp}>Get home-loan help</Button>
+        <Button variant="outline" className="w-full mt-auto" onClick={onLoanHelp}>Get home-loan help</Button>
       )}
+      </div>
+      </div>
     </Card>
   );
 };

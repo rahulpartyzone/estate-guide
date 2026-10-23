@@ -749,12 +749,31 @@ const ProjectDetail = () => {
                   </Card>
                 </TabsContent>
               </Tabs>
+
+              {/* Always visible under the tabs, full width */}
+              <div className="mt-8">
+                <EmiCalculator priceMin={property.priceMin} priceMax={property.priceMax} onLoanHelp={() => setEnquiry("info")} />
+              </div>
             </div>
 
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Price & CTA Card (not sticky: the EMI and builder cards below would scroll under it) */}
-              <Card className="p-6">
+            {/* Sidebar: just the price and contact card, pinned below the site header on large screens */}
+            <div>
+              <Card className="p-6 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+                <div className="flex items-center gap-3 mb-5 pb-5 border-b">
+                  {property.builderLogoUrl ? (
+                    <div className="w-12 h-12 rounded-full overflow-hidden border bg-white flex items-center justify-center shrink-0">
+                      <img src={property.builderLogoUrl} alt={`${property.builder} logo`} className="max-w-full max-h-full object-contain" loading="lazy" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                      <Home className="h-6 w-6 text-primary" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-xs text-muted-foreground">Built by</div>
+                    <div className="font-semibold truncate">{property.builder}</div>
+                  </div>
+                </div>
                 <div className="text-center mb-6">
                   {property.reraId && (
                     <div className="text-sm text-muted-foreground mb-2">
@@ -809,31 +828,6 @@ const ProjectDetail = () => {
                       {isComparing ? "Remove from comparison" : "Add to comparison"}
                     </Button>
                   )}
-                </div>
-              </Card>
-
-              <EmiCalculator priceMin={property.priceMin} priceMax={property.priceMax} onLoanHelp={() => setEnquiry("info")} />
-
-              {/* Builder Info */}
-              <Card className="p-6">
-                <h3 className="font-bold text-lg mb-3">Built By</h3>
-                <div className="text-center">
-                  {property.builderLogoUrl ? (
-                    <div className="w-16 h-16 rounded-full overflow-hidden border bg-white mx-auto mb-3 flex items-center justify-center">
-                      <img
-                        src={property.builderLogoUrl}
-                        alt={`${property.builder} logo`}
-                        className="max-w-full max-h-full object-contain"
-                        loading="lazy"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <Home className="h-8 w-8 text-primary" />
-                    </div>
-                  )}
-                  <h4 className="font-semibold text-lg">{property.builder}</h4>
-                  <p className="text-sm text-muted-foreground">Premium Developer</p>
                 </div>
               </Card>
             </div>
