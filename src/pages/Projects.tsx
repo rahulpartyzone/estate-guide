@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Filter, SlidersHorizontal, Building2, MapPin, BedDouble, Home } from "lucide-react";
+import { Search, Filter, SlidersHorizontal, Building2, MapPin, BedDouble, Home, X } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
 import { Property } from "@/types/property";
@@ -32,6 +33,7 @@ const Projects = () => {
   const [selectedBedrooms, setSelectedBedrooms] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,6 +154,122 @@ const Projects = () => {
   };
 
   const activeFiltersCount = [selectedCity, selectedType, selectedBuilder, selectedStatus, selectedBedrooms].filter(f => f !== "all").length + ((priceRange[0] > 0 || priceRange[1] < maxPrice) ? 1 : 0);
+  const priceIsCustom = priceRange[1] > 0 && (priceRange[0] > 0 || priceRange[1] < maxPrice);
+  const typeLabel = (t: string) => PropertyTypeLabels[t as keyof typeof PropertyTypeLabels] || t;
+  const statusLabel = (s: string) => (ProjectStatusLabels as Record<string, string>)[s] || s;
+  const activeChips = [
+    searchQuery.trim() && { key: 'q', label: `"${searchQuery.trim()}"`, clear: () => setSearchQuery('') },
+    selectedType !== 'all' && { key: 'type', label: typeLabel(selectedType), clear: () => setSelectedType('all') },
+    selectedCity !== 'all' && { key: 'city', label: selectedCity, clear: () => setSelectedCity('all') },
+    selectedStatus !== 'all' && { key: 'status', label: statusLabel(selectedStatus), clear: () => setSelectedStatus('all') },
+    selectedBedrooms !== 'all' && { key: 'bed', label: `${selectedBedrooms} BHK`, clear: () => setSelectedBedrooms('all') },
+    selectedBuilder !== 'all' && { key: 'builder', label: selectedBuilder, clear: () => setSelectedBuilder('all') },
+    priceIsCustom && { key: 'price', label: `${formatPriceCap(priceRange[0])} – ${formatPriceCap(priceRange[1])}`, clear: () => setPriceRange([0, maxPrice]) },
+  ].filter(Boolean) as { key: string; label: string; clear: () => void }[];
+
+  const selectClass = "h-12 bg-background/95";
+  const filterSelects = (
+    <>
+      <Select value={selectedType} onValueChange={setSelectedType}>
+        <SelectTrigger className={selectClass}>
+          <div className="flex items-center gap-2">
+            <Home className="h-4 w-4 text-muted-foreground" />
+            <SelectValue placeholder="Project Type" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Project Types</SelectItem>
+          {propertyTypes.map(type => (
+            <SelectItem key={type} value={type}>{typeLabel(type)}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={selectedCity} onValueChange={setSelectedCity}>
+        <SelectTrigger className={selectClass}>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <SelectValue placeholder="Location" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Locations</SelectItem>
+          {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+        </SelectContent>
+      </Select>
+
+      <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+        <SelectTrigger className={selectClass}>
+          <SelectValue placeholder="Construction Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Status</SelectItem>
+          {Object.entries(ProjectStatusLabels).map(([value, label]) => (
+            <SelectItem key={value} value={value}>{label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={selectedBedrooms} onValueChange={setSelectedBedrooms}>
+        <SelectTrigger className={selectClass}>
+          <div className="flex items-center gap-2">
+            <BedDouble className="h-4 w-4 text-muted-foreground" />
+            <SelectValue placeholder="Bedrooms" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Bedrooms</SelectItem>
+          <SelectItem value="1">1 BHK</SelectItem>
+          <SelectItem value="2">2 BHK</SelectItem>
+          <SelectItem value="3">3 BHK</SelectItem>
+          <SelectItem value="4+">4+ BHK</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select value={selectedBuilder} onValueChange={setSelectedBuilder}>
+        <SelectTrigger className={selectClass}>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <SelectValue placeholder="Builder" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Builders</SelectItem>
+          {builders.map(builder => (
+            <SelectItem key={builder} value={builder}>{builder}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
+  );
+
+  /** Budget slider; `onDark` is for the banner panel on larger screens. */
+  const priceFilter = (onDark: boolean) => (
+    <div className="flex flex-col gap-4 md:flex-row md:items-end">
+      <div className="flex-1">
+        <div className={`flex items-center justify-between text-sm mb-3 ${onDark ? 'text-white' : 'text-foreground'}`}>
+          <span className="font-medium">Budget</span>
+          <span>{formatPriceCap(priceRange[0])} — {formatPriceCap(priceRange[1])}</span>
+        </div>
+        <Slider
+          value={priceRange}
+          min={0}
+          max={maxPrice}
+          step={Math.max(100000, Math.floor(maxPrice / 100))}
+          onValueChange={(value) => {
+            const [start, end] = value as number[];
+            setPriceRange([start, end]);
+          }}
+        />
+      </div>
+      {onDark && activeFiltersCount + (searchQuery ? 1 : 0) > 0 && (
+        <Button variant="outline" onClick={clearFilters} className="h-10 gap-2 bg-background/95">
+          <SlidersHorizontal className="h-4 w-4" /> Reset filters
+        </Button>
+      )}
+    </div>
+  );
+
   const hasCustomHeroImage = Boolean(projectsHeaderImageUrl);
   const heroBackgroundUrl = projectsHeaderImageUrl || heroBuildingImage;
 
@@ -163,159 +281,102 @@ const Projects = () => {
         <div className="absolute inset-0 bg-cover bg-center md:bg-fixed scale-105" style={{ backgroundImage: `url(${heroBackgroundUrl})` }} />
         <div className={`absolute inset-0 ${hasCustomHeroImage ? 'bg-black/50' : 'bg-black/55'}`} />
 
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-12 md:pt-16 pb-12 md:pb-14">
-          <div className="text-center mb-6 md:mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold mb-3 text-white">Browse Properties</h1>
-            <p className="text-xl max-w-2xl mx-auto text-white/90">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-8 md:pt-16 pb-8 md:pb-14">
+          <div className="text-center mb-5 md:mb-8">
+            <h1 className="text-3xl md:text-5xl font-bold mb-2 md:mb-3 text-white">Browse Properties</h1>
+            <p className="text-base md:text-xl max-w-2xl mx-auto text-white/90">
               Discover your perfect home from our collection of premium properties
             </p>
           </div>
 
-          <div className="rounded-2xl p-4 md:p-6 space-y-4 border border-white/30 bg-background/25 backdrop-blur-md shadow-2xl">
-            <div className="grid grid-cols-1 xl:grid-cols-6 gap-4">
-              <div className="xl:col-span-2 relative">
+          <div className="rounded-2xl p-3 md:p-6 space-y-4 border border-white/30 bg-background/25 backdrop-blur-md shadow-2xl">
+            <div className="flex gap-2 md:grid md:grid-cols-2 xl:grid-cols-7 md:gap-4">
+              <div className="relative flex-1 md:col-span-2">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search by project name, keywords, etc."
+                  placeholder="Search project, area or city"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 h-12 bg-background/95"
                 />
               </div>
 
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="h-12 bg-background/95">
-                  <div className="flex items-center gap-2">
-                    <Home className="h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="Project Type" />
+              {/* Phones: one button opens all the filters */}
+              <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="h-12 shrink-0 gap-2 bg-background/95 md:hidden">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filters
+                    {activeFiltersCount > 0 && <Badge className="h-5 min-w-5 justify-center px-1.5">{activeFiltersCount}</Badge>}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
+                  <SheetHeader className="text-left">
+                    <SheetTitle>Filters</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-4 space-y-3">{filterSelects}</div>
+                  <div className="mt-5">{priceFilter(false)}</div>
+                  <div className="sticky bottom-0 -mx-6 mt-6 flex gap-3 border-t bg-background px-6 pt-4 pb-2">
+                    <Button variant="outline" className="flex-1" onClick={clearFilters} disabled={activeFiltersCount === 0 && !searchQuery}>
+                      Clear all
+                    </Button>
+                    <Button className="flex-[2]" onClick={() => setFiltersOpen(false)}>
+                      Show {filteredProperties.length} project{filteredProperties.length === 1 ? '' : 's'}
+                    </Button>
                   </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Project Types</SelectItem>
-                  {propertyTypes.map(type => (
-                    <SelectItem key={type} value={type}>{PropertyTypeLabels[type as keyof typeof PropertyTypeLabels] || type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                </SheetContent>
+              </Sheet>
 
-              <Select value={selectedCity} onValueChange={setSelectedCity}>
-                <SelectTrigger className="h-12 bg-background/95">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="Location" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-12 bg-background/95">
-                  <SelectValue placeholder="Construction Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  {Object.entries(ProjectStatusLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedBedrooms} onValueChange={setSelectedBedrooms}>
-                <SelectTrigger className="h-12 bg-background/95">
-                  <div className="flex items-center gap-2">
-                    <BedDouble className="h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="Bedrooms" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Bedrooms</SelectItem>
-                  <SelectItem value="1">1 BHK</SelectItem>
-                  <SelectItem value="2">2 BHK</SelectItem>
-                  <SelectItem value="3">3 BHK</SelectItem>
-                  <SelectItem value="4+">4+ BHK</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedBuilder} onValueChange={setSelectedBuilder}>
-                <SelectTrigger className="h-12 bg-background/95">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="Builder" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Builders</SelectItem>
-                  {builders.map(builder => (
-                    <SelectItem key={builder} value={builder}>{builder}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="hidden md:contents">{filterSelects}</div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
-              <div className="lg:col-span-2">
-                <div className="flex items-center justify-between text-sm mb-2 text-white">
-                  <span>Price Range</span>
-                  <span>{formatPriceCap(priceRange[0])} — {formatPriceCap(priceRange[1])}</span>
-                </div>
-                <Slider
-                  value={priceRange}
-                  min={0}
-                  max={maxPrice}
-                  step={Math.max(100000, Math.floor(maxPrice / 100))}
-                  onValueChange={(value) => {
-                    const [start, end] = value as number[];
-                    setPriceRange([start, end]);
-                  }}
-                />
-              </div>
-              <Button variant="outline" className="h-12 text-base font-semibold">
-                {filteredProperties.length} PROJECTS FOUND
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="h-12 bg-background/95">
-                  <SelectValue placeholder="Sort By" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="name">Name A-Z</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button 
-                variant="outline" 
-                onClick={clearFilters}
-                className="h-12 flex items-center gap-2 bg-background/95"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Reset Filters
-                {activeFiltersCount > 0 && (
-                  <Badge variant="secondary" className="ml-1">
-                    {activeFiltersCount}
-                  </Badge>
-                )}
-              </Button>
-            </div>
+            <div className="hidden md:block">{priceFilter(true)}</div>
           </div>
         </div>
       </section>
 
       {/* Properties Grid */}
-      <section className="py-12">
+      <section className="py-8 md:py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Results Count */}
+          {/* Results count, active filters and sorting */}
           {!loading && !error && (
-            <div className="mb-8 flex flex-col gap-2">
-              <p className="text-muted-foreground">
-                Showing {filteredProperties.length} of {properties.length} properties
-              </p>
+            <div className="mb-6 md:mb-8 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm md:text-base text-muted-foreground">
+                  <span className="font-semibold text-foreground">{filteredProperties.length}</span>{' '}
+                  {filteredProperties.length === 1 ? 'project' : 'projects'}
+                  {filteredProperties.length !== properties.length && <> of {properties.length}</>}
+                </p>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="h-9 w-[150px]">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest first</SelectItem>
+                    <SelectItem value="name">Name A–Z</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {activeChips.length > 0 && (
+                <div className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
+                  {activeChips.map((chip) => (
+                    <button
+                      key={chip.key}
+                      type="button"
+                      onClick={chip.clear}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border bg-muted/50 px-3 py-1 text-sm text-foreground hover:bg-muted"
+                      aria-label={`Remove filter ${chip.label}`}
+                    >
+                      {chip.label}
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  ))}
+                  <button type="button" onClick={clearFilters} className="shrink-0 px-2 text-sm font-medium text-primary hover:underline">
+                    Clear all
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

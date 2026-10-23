@@ -9,7 +9,7 @@ const CompareBar = () => {
   const { pathname } = useLocation();
   if (!ids.length || pathname.startsWith("/admin") || pathname === "/compare") return null;
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md">
+    <div className={`fixed left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md ${pathname.startsWith("/project/") ? "bottom-20 lg:bottom-4" : "bottom-4"}`}>
       <div className="flex items-center justify-between gap-3 rounded-full border bg-background/95 backdrop-blur px-4 py-2 shadow-lg">
         <div className="flex items-center gap-2 text-sm">
           <Scale className="h-4 w-4 text-primary" aria-hidden="true" />

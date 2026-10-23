@@ -41,7 +41,7 @@ const Hero = ({
   };
 
   return (
-    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden py-12 md:py-0">
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -51,14 +51,15 @@ const Hero = ({
       </div>
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div className="max-w-4xl mx-auto animate-fade-in">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+      {/* No fade-in here: the heading is the first thing visitors (and Google's speed score) wait for */}
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 text-center md:pb-20">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-5 md:mb-6 leading-tight">
             {heroTitlePrefix}
             <span className="text-accent block mt-2">{heroTitleHighlight}</span>
           </h1>
           
-          <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto leading-relaxed">
             {heroDescription}
           </p>
 
@@ -90,11 +91,11 @@ const Hero = ({
           </div>
 
           {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-8 text-white">
+          <div className="mx-auto grid max-w-xl grid-cols-3 gap-3 text-white md:flex md:max-w-none md:justify-center md:gap-12">
             {heroStats.map((item) => (
               <div key={`${item.value}-${item.label}`} className="text-center">
-                <div className="text-3xl font-bold text-accent">{item.value}</div>
-                <div className="text-white/80">{item.label}</div>
+                <div className="text-2xl md:text-3xl font-bold text-accent">{item.value}</div>
+                <div className="text-xs leading-tight text-white/80 sm:text-sm md:text-base">{item.label}</div>
               </div>
             ))}
           </div>
@@ -102,7 +103,7 @@ const Hero = ({
       </div>
 
       {/* Scroll Indicator */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+      <div className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 transform animate-bounce md:block" aria-hidden="true">
         <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center">
           <div className="w-1 h-3 bg-white/70 rounded-full mt-2 animate-pulse" />
         </div>

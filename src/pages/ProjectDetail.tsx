@@ -48,6 +48,7 @@ const ProjectDetail = () => {
   const hasBrochure = !!property?.brochureUrl;
   const [amenityCatalog, setAmenityCatalog] = useState<any[]>([]);
   const [companyWhatsappNumber, setCompanyWhatsappNumber] = useState<string>("");
+  const [companyPhone, setCompanyPhone] = useState<string>("");
 
   // Count one view per project per browser session (feeds the admin dashboard).
   useEffect(() => {
@@ -99,7 +100,10 @@ const ProjectDetail = () => {
     (async () => {
       try {
         const profile = await api.getSiteProfile();
-        if (!cancelled) setCompanyWhatsappNumber(profile?.whatsappNumber || "");
+        if (!cancelled) {
+          setCompanyWhatsappNumber(profile?.whatsappNumber || "");
+          setCompanyPhone(profile?.phone || "");
+        }
       } catch {
         if (!cancelled) setCompanyWhatsappNumber("");
       }
@@ -289,7 +293,7 @@ const ProjectDetail = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 lg:pb-0">
       <Header />
       {loading && (
         <div className="container mx-auto px-4 py-8 text-sm text-muted-foreground">Loading property...</div>
@@ -369,13 +373,14 @@ const ProjectDetail = () => {
             {/* Main Content */}
             <div className="lg:col-span-2">
               <Tabs defaultValue="overview" className="space-y-8">
-                <TabsList className="grid w-full grid-cols-6">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="gallery">Gallery</TabsTrigger>
-                  <TabsTrigger value="floor-plans">Floor Plans</TabsTrigger>
-                  <TabsTrigger value="amenities">Amenities</TabsTrigger>
-                  <TabsTrigger value="location">Location</TabsTrigger>
-                  <TabsTrigger value="builder-profile">Builder Profile</TabsTrigger>
+                {/* Scrolls sideways on phones instead of squeezing six labels into one row */}
+                <TabsList className="scrollbar-none flex h-auto w-full justify-start gap-1 overflow-x-auto lg:grid lg:grid-cols-6">
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="overview">Overview</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="gallery">Gallery</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="floor-plans">Floor Plans</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="amenities">Amenities</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="location">Location</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="builder-profile">Builder</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
@@ -843,6 +848,37 @@ const ProjectDetail = () => {
           </div>
         </div>
       </section>
+      )}
+
+      {/* Phones: the main actions stay in reach at the bottom of the screen */}
+      {property && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur-sm lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          <div className={`grid gap-1 px-2 py-2 ${companyPhone ? "grid-cols-4" : "grid-cols-3"}`}>
+            {companyPhone && (
+              <a
+                href={`tel:${companyPhone.replace(/[^\d+]/g, "")}`}
+                className="flex flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-xs font-medium text-foreground active:bg-muted"
+              >
+                <Phone className="h-5 w-5 text-primary" /> Call
+              </a>
+            )}
+            <button type="button" onClick={handleWhatsAppChat} className="flex flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-xs font-medium text-foreground active:bg-muted">
+              <MessageCircle className="h-5 w-5 text-emerald-600" /> WhatsApp
+            </button>
+            <button type="button" onClick={() => setEnquiry("site_visit")} className="flex flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-xs font-medium text-foreground active:bg-muted">
+              <Calendar className="h-5 w-5 text-primary" /> Site visit
+            </button>
+            {hasBrochure ? (
+              <button type="button" onClick={handleDownloadBrochure} className="flex flex-col items-center justify-center gap-0.5 rounded-md bg-primary py-1.5 text-xs font-semibold text-primary-foreground active:opacity-90">
+                <Download className="h-5 w-5" /> Brochure
+              </button>
+            ) : (
+              <button type="button" onClick={() => setEnquiry("info")} className="flex flex-col items-center justify-center gap-0.5 rounded-md bg-primary py-1.5 text-xs font-semibold text-primary-foreground active:opacity-90">
+                <Mail className="h-5 w-5" /> Enquire
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Brochure OTP Dialog */}

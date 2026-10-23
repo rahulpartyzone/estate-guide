@@ -10,6 +10,7 @@ const tracked = <R>(leadType: string, promise: Promise<R>) =>
     return result;
   });
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
+let siteProfileCache: { at: number; promise: Promise<any> } | null = null;
 
 // Restore persisted accessToken (if page reloaded) into sessionStorage
 try {
@@ -251,8 +252,16 @@ export const api = {
   },
 
   // Site profile (public)
+  /** Shared by the header, footer and pages, so it's fetched once a minute at most (always fresh in the admin). */
   getSiteProfile() {
-    return request<any>(`/site-profile`);
+    const inAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+    if (inAdmin || !siteProfileCache || Date.now() - siteProfileCache.at > 60_000) {
+      const promise = request<any>(`/site-profile`);
+      if (inAdmin) return promise;
+      siteProfileCache = { at: Date.now(), promise };
+      promise.catch(() => { siteProfileCache = null; });
+    }
+    return siteProfileCache.promise;
   },
 
   // News (public)

@@ -127,3 +127,11 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+/* Horizontal scrollers (tab bars, chip rows) without a visible scrollbar */
+.scrollbar-none {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

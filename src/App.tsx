@@ -18,6 +18,7 @@ import CompareBar from "./components/CompareBar";
 import Compare from "./pages/Compare";
 import Unsubscribe from "./pages/Unsubscribe";
 import BuyerLoginDialog from "./components/BuyerLoginDialog";
+import SiteFooter from "./components/SiteFooter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <SiteFooter />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
