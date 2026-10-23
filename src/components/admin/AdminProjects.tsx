@@ -199,8 +199,8 @@ const AdminProjects = () => {
         if (brochureFile.type !== 'application/pdf') {
           throw new Error('Brochure must be a PDF file');
         }
-        if (brochureFile.size > 8 * 1024 * 1024) { // 8MB
-          throw new Error('Brochure PDF must be 8MB or smaller');
+        if (brochureFile.size > 25 * 1024 * 1024) { // uploads go straight to storage, so large PDFs are fine
+          throw new Error('Brochure PDF must be 25MB or smaller');
         }
         const stored = await api.uploadFileDirect(brochureFile);
         brochureUrl = stored.url;
@@ -271,6 +271,9 @@ const AdminProjects = () => {
         return val.trim() ? val : undefined;
       })(),
       reraId: (fd.get('reraId') as string)?.trim(),
+      // Empty string removes the link
+      videoUrl: ((fd.get('videoUrl') as string) || '').trim(),
+      virtualTourUrl: ((fd.get('virtualTourUrl') as string) || '').trim(),
       unitSizeRange: (() => {
         const raw = ((fd.get('unitSizeRange') as string) || '').trim();
         return raw || undefined;
@@ -513,6 +516,30 @@ const AdminProjects = () => {
                     aria-invalid={!!fieldErrors.reraId}
                   />
                   {fieldErrors.reraId && <p className="text-xs text-red-500 mt-1">{fieldErrors.reraId}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="videoUrl">Walkthrough video (YouTube link)</Label>
+                  <Input
+                    id="videoUrl"
+                    name="videoUrl"
+                    type="url"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    defaultValue={(editingProject as any)?.videoUrl || ''}
+                    pattern="https://.*"
+                    title="Paste a link starting with https://"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="virtualTourUrl">3D / 360° virtual tour link</Label>
+                  <Input
+                    id="virtualTourUrl"
+                    name="virtualTourUrl"
+                    type="url"
+                    placeholder="https://my.matterport.com/show/?m=..."
+                    defaultValue={(editingProject as any)?.virtualTourUrl || ''}
+                    pattern="https://.*"
+                    title="Paste a link starting with https://"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="location">Location</Label>

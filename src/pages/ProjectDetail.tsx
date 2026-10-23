@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Home, Calendar, Download, Phone, Mail, Share, Heart, Bath, Bed, Ruler, MessageCircle } from "lucide-react";
+import { MapPin, Home, Calendar, Download, Phone, Mail, Share, Heart, Bath, Bed, Ruler, MessageCircle, Scale } from "lucide-react";
 import MapView from "@/components/MapView";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -20,6 +20,9 @@ import type { Property } from '@/types/property';
 import { toggleSaved, useSavedIds } from '@/lib/saved';
 import { usePageTitle } from '@/lib/pageTitle';
 import ProjectEnquiryDialog, { type EnquiryMode } from '@/components/ProjectEnquiryDialog';
+import EmiCalculator from '@/components/EmiCalculator';
+import ProjectMedia from '@/components/ProjectMedia';
+import { toggleCompare, useCompareIds } from '@/lib/compare';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -27,6 +30,8 @@ const ProjectDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const savedIds = useSavedIds();
   const [enquiry, setEnquiry] = useState<EnquiryMode | null>(null);
+  const compareIds = useCompareIds();
+  const isComparing = Boolean(id && compareIds.includes(id));
   const isSaved = Boolean(id && savedIds.includes(id));
   const [property, setProperty] = useState<Property | undefined>(undefined);
   usePageTitle(property?.name || null);
@@ -633,6 +638,7 @@ const ProjectDetail = () => {
                 </TabsContent>
 
                 <TabsContent value="gallery" className="space-y-6">
+                  <ProjectMedia name={property.name} videoUrl={property.videoUrl} virtualTourUrl={property.virtualTourUrl} />
                   <Card className="p-6">
                     <h2 className="text-2xl font-bold text-foreground mb-4">Photo Gallery</h2>
                     {property.images?.length ? (
@@ -796,8 +802,17 @@ const ProjectDetail = () => {
                     <Mail className="h-5 w-5 mr-2" />
                     Get More Info
                   </Button>
+
+                  {id && (
+                    <Button variant="ghost" className="w-full" onClick={() => toggleCompare(id)} aria-pressed={isComparing}>
+                      <Scale className="h-4 w-4 mr-2" />
+                      {isComparing ? "Remove from comparison" : "Add to comparison"}
+                    </Button>
+                  )}
                 </div>
               </Card>
+
+              <EmiCalculator priceMin={property.priceMin} priceMax={property.priceMax} onLoanHelp={() => setEnquiry("info")} />
 
               {/* Builder Info */}
               <Card className="p-6">

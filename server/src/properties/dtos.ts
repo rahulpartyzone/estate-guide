@@ -81,6 +81,11 @@ export class PropertyCreateDto {
   @IsOptional() @IsBoolean() published?: boolean;
   @IsOptional() @Matches(/^(https?:\/\/|\/)/, { message: 'brochureUrl must be an absolute URL or leading-slash path' })
   brochureUrl?: string;
+  // https links only; an empty string removes the link
+  @IsOptional() @Matches(/^(https:\/\/\S+)?$/, { message: 'Video link must start with https://' })
+  videoUrl?: string;
+  @IsOptional() @Matches(/^(https:\/\/\S+)?$/, { message: 'Virtual tour link must start with https://' })
+  virtualTourUrl?: string;
 }
 
 export class PropertyUpdateDto extends PropertyCreateDto {}

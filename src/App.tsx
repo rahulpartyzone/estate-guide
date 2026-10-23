@@ -14,6 +14,8 @@ import BuilderDetail from "./pages/BuilderDetail";
 import AcceptInvite from "./pages/AcceptInvite";
 import Saved from "./pages/Saved";
 import AnalyticsTracker from "./components/AnalyticsTracker";
+import CompareBar from "./components/CompareBar";
+import Compare from "./pages/Compare";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AnalyticsTracker />
+        <CompareBar />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/projects" element={<Projects />} />
@@ -34,6 +37,7 @@ const App = () => (
           <Route path="/news" element={<News />} />
           <Route path="/about" element={<About />} />
           <Route path="/saved" element={<Saved />} />
+          <Route path="/compare" element={<Compare />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/onboarding/accept-invite" element={<AcceptInvite />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -184,6 +184,8 @@ export function mapBackendProperty(p: any): Property {
     completionDate: p.status === 'ReadyToMove' ? 'Ready to Move' : (p.completionDate ? new Date(p.completionDate).toISOString().substring(0,10) : undefined),
     status: p.status || 'UnderConstruction',
   brochureUrl: p.brochureUrl || undefined,
+    videoUrl: p.videoUrl || undefined,
+    virtualTourUrl: p.virtualTourUrl || undefined,
     coordinates: (p.lat && p.lng) ? { lat: p.lat, lng: p.lng } : undefined,
     floorPlans: rawFloorPlans.map((f) => ({
       type: f.type,

@@ -44,6 +44,8 @@ export interface Property {
   completionDate?: string;
   status: ProjectStatusEnum;
   brochureUrl?: string;
+  videoUrl?: string;
+  virtualTourUrl?: string;
   coordinates?: {
     lat: number;
     lng: number;

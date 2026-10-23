@@ -167,6 +167,8 @@ export class PropertiesService {
         lng: dto.coordinates?.lng,
         mainImageUrl: dto.mainImageUrl,
   brochureUrl: dto.brochureUrl || null,
+        videoUrl: dto.videoUrl?.trim() || null,
+        virtualTourUrl: dto.virtualTourUrl?.trim() || null,
         published: dto.published ?? true,
         images: { create: dto.images?.map((i) => ({ url: i.url, altText: i.alt, sortOrder: i.sortOrder })) || [] },
         amenities: { create: amenityNames.map((name) => ({ amenity: { connectOrCreate: { where: { name }, create: { name } } } })) },
@@ -247,6 +249,8 @@ export class PropertiesService {
           lng: dto.coordinates?.lng,
           mainImageUrl: dto.mainImageUrl,
           brochureUrl: dto.brochureUrl ?? undefined,
+          videoUrl: dto.videoUrl === undefined ? undefined : dto.videoUrl.trim() || null,
+          virtualTourUrl: dto.virtualTourUrl === undefined ? undefined : dto.virtualTourUrl.trim() || null,
           published: dto.published ?? undefined,
           images: { deleteMany: { propertyId: id }, create: dto.images?.map((i) => ({ url: i.url, altText: i.alt, sortOrder: i.sortOrder })) || [] },
           floorPlans: {

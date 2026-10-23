@@ -175,6 +175,9 @@ model Property {
   mainImageUrl        String
   published           Boolean           @default(true)
   brochureUrl         String?
+  // Walkthrough video (YouTube link) and 3D / 360° virtual tour link shown on the project page
+  videoUrl            String?
+  virtualTourUrl      String?
   reraId              String?
   parkingSpaces       Int?
   furnishing          String?

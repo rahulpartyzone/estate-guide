@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Home, Calendar, ArrowRight, Bath, Bed } from "lucide-react";
+import { MapPin, Home, Calendar, ArrowRight, Bath, Bed, Scale } from "lucide-react";
+import { toggleCompare, useCompareIds } from "@/lib/compare";
 import { Link } from "react-router-dom";
 import { Property } from "@/types/property";
 import { ProjectStatusLabels } from "@/constants/enums";
@@ -13,6 +14,7 @@ interface PropertyCardProps {
 
 const PropertyCard = ({ property, className }: PropertyCardProps) => {
   const isPlot = property.propertyType === 'Plot';
+  const comparing = useCompareIds().includes(property.id);
   return (
     <Card className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden border-0 bg-card ${className}`}>
       {/* Property Image */}
@@ -127,6 +129,15 @@ const PropertyCard = ({ property, className }: PropertyCardProps) => {
               <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover/btn:translate-x-1" />
             </Button>
           </Link>
+          <button
+            type="button"
+            onClick={() => toggleCompare(property.id)}
+            aria-pressed={comparing}
+            className={`w-full flex items-center justify-center gap-1.5 text-xs py-1 rounded hover:bg-muted ${comparing ? 'text-primary font-medium' : 'text-muted-foreground'}`}
+          >
+            <Scale className="h-3.5 w-3.5" aria-hidden="true" />
+            {comparing ? 'Added to comparison' : 'Add to comparison'}
+          </button>
         </div>
       </div>
     </Card>
