@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { usePageTitle } from "@/lib/pageTitle";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
 import { absolutizeApiUrl } from "@/lib/url";
@@ -26,6 +27,7 @@ interface NewsItem {
 }
 
 const News = () => {
+  usePageTitle("Real estate news");
   const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:8080/api/v1";
   const absolutize = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
 

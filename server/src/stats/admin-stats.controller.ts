@@ -8,6 +8,20 @@ const IST_OFFSET_MS = 330 * 60 * 1000; // months are bucketed in India time
 const MONTHS = 6;
 const LEAD_TYPES = ['site_visit', 'info', 'brochure', 'preference'] as const;
 
+/** "google / cpc", "facebook.com (referral)" or "Direct or not tracked", for the leads-by-source table. */
+function sourceLabel(l: { utmSource: string | null; utmMedium: string | null; attribution: unknown }) {
+  if (l.utmSource) return l.utmMedium ? `${l.utmSource} / ${l.utmMedium}` : l.utmSource;
+  const referrer = (l.attribution as Record<string, unknown> | null)?.referrer;
+  if (typeof referrer === 'string' && referrer) {
+    try {
+      return `${new URL(referrer).hostname.replace(/^www\./, '')} (referral)`;
+    } catch {
+      /* not a URL */
+    }
+  }
+  return 'Direct or not tracked';
+}
+
 @Controller('admin/stats')
 @UseGuards(JwtCookieAuthGuard, PermissionsGuard)
 @RequirePermissions('dashboard.read')
@@ -23,7 +37,7 @@ export class AdminStatsController {
     const istNow = new Date(now + IST_OFFSET_MS);
     const firstMonth = new Date(Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth() - (MONTHS - 1), 1) - IST_OFFSET_MS);
 
-    const [properties, builders, leads, subscribers, testimonials, leadsLast7Days, leadsLast30Days, newLeads, recentLeads, projects] =
+    const [properties, builders, leads, subscribers, testimonials, leadsLast7Days, leadsLast30Days, newLeads, recentLeads, projects, last30] =
       await Promise.all([
         this.prisma.property.count(),
         this.prisma.builder.count(),
@@ -37,7 +51,20 @@ export class AdminStatsController {
         this.prisma.property.findMany({
           select: { id: true, name: true, views: true, saves: true, _count: { select: { Lead: true } } },
         }),
+        this.prisma.lead.findMany({
+          where: { createdAt: { gte: new Date(now - 30 * day) } },
+          select: { utmSource: true, utmMedium: true, attribution: true },
+        }),
       ]);
+
+    const bySource = new Map<string, number>();
+    for (const l of last30) {
+      const label = sourceLabel(l);
+      bySource.set(label, (bySource.get(label) || 0) + 1);
+    }
+    const leadSources = Array.from(bySource, ([source, count]) => ({ source, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
 
     const buckets = new Map<string, { month: string; label: string; total: number } & Record<string, number | string>>();
     for (let i = 0; i < MONTHS; i++) {
@@ -73,6 +100,7 @@ export class AdminStatsController {
       newLeads,
       leadsByMonth: Array.from(buckets.values()),
       topProjects,
+      leadSources,
     };
   }
 }

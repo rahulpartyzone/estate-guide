@@ -1,19 +1,30 @@
-import { IsDateString, IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsEmail, IsIn, IsInt, IsObject, Matches, MaxLength, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, Max, Min } from 'class-validator';
 
-export class LeadBaseDto {
+/** Campaign info captured on the visitor's first visit (utm_*, gclid, referrer...). Sanitised in attribution.ts. */
+class WithAttribution {
+  @IsOptional()
+  @IsObject()
+  attribution?: Record<string, unknown>;
+}
+
+export class LeadBaseDto extends WithAttribution {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(120)
   name!: string;
 
+  // Optional: many visitors only leave a phone number
+  @IsOptional()
   @IsEmail()
-  email!: string;
+  email?: string;
 
   @IsString()
-  @IsNotEmpty()
-  phone!: string; // Using string; can add phone validation pattern later.
+  @Matches(/^\+?[0-9\s-]{10,16}$/, { message: 'Enter a valid phone number' })
+  phone!: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   message?: string;
 }
 
@@ -33,7 +44,7 @@ export class OTPRequestDto {
   email?: string;
 }
 
-export class OTPVerifyDto {
+export class OTPVerifyDto extends WithAttribution {
   @IsString()
   otp!: string;
 
@@ -49,7 +60,7 @@ export class LeadStatusUpdateDto {
   status!: string;
 }
 
-export class LeadPreferenceDto {
+export class LeadPreferenceDto extends WithAttribution {
   @IsString()
   @IsNotEmpty()
   preferredPropertyType!: string;
@@ -82,7 +93,7 @@ export class LeadPreferenceDto {
   sourcePage?: string;
 }
 
-export class WidgetVerifyDto {
+export class WidgetVerifyDto extends WithAttribution {
   @IsString()
   accessToken!: string; // MSG91 widget access token
 

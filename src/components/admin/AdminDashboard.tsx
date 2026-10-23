@@ -17,6 +17,7 @@ type Stats = {
   newLeads: number;
   leadsByMonth: MonthRow[];
   topProjects: { id: string; name: string; views: number; saves: number; leads: number }[];
+  leadSources?: { source: string; count: number }[];
 };
 
 const TYPE_LABELS: [keyof MonthRow, string][] = [
@@ -124,6 +125,42 @@ export default function AdminDashboard() {
               </TableBody>
             </Table>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Where leads came from, last 30 days</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stats.leadSources && stats.leadSources.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Source</TableHead>
+                  <TableHead className="text-right">Leads</TableHead>
+                  <TableHead className="text-right">Share</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.leadSources.map((s) => (
+                  <TableRow key={s.source}>
+                    <TableCell>{s.source}</TableCell>
+                    <TableCell className="text-right tabular-nums">{s.count}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {stats.leadsLast30Days ? Math.round((s.count / stats.leadsLast30Days) * 100) : 0}%
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-sm text-muted-foreground">No leads in the last 30 days.</div>
+          )}
+          <p className="text-xs text-muted-foreground mt-3">
+            Tag ad and social links with <code>utm_source</code>, <code>utm_medium</code> and <code>utm_campaign</code> to see
+            each campaign here. Google and Meta ad clicks are recognised without tags. Leads from before this release show as "Direct or not tracked".
+          </p>
         </CardContent>
       </Card>
 

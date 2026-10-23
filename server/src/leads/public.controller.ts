@@ -27,7 +27,7 @@ export class PublicLeadsController {
   @Post('brochure/verify-otp')
   verifyOtp(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @Body() dto: OTPVerifyDto) {
     const contact = dto.contact; // required by spec though optional in dto
-    return this.svc.verifyOtp(id, contact, dto.otp);
+    return this.svc.verifyOtp(id, contact, dto.otp, dto.attribution);
   }
 
   // Optional alternative flow: MSG91 Widget verification
@@ -35,7 +35,7 @@ export class PublicLeadsController {
   async verifyWidget(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @Body() dto: WidgetVerifyDto) {
     if (!dto.accessToken) throw new BadRequestException('accessToken required');
     // Delegate to service method that validates token via MSG91 and returns brochure
-    return this.svc.verifyWidgetToken(id, dto.accessToken, dto.phone, dto.propertyName);
+    return this.svc.verifyWidgetToken(id, dto.accessToken, dto.phone, dto.propertyName, dto.attribution);
   }
 
   // Optional: MSG91 Widget sendOtp initiation endpoint
@@ -50,10 +50,10 @@ export class PublicLeadsController {
   @Post('brochure/verify-external-otp')
   async verifyExternalOtp(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @Body() body: { contact: string; otp: string },
+    @Body() body: { contact: string; otp: string; attribution?: unknown },
   ) {
-    const { contact, otp } = body || ({} as any);
+    const { contact, otp, attribution } = body || ({} as any);
     if (!contact || !otp) throw new BadRequestException('contact and otp required');
-    return this.svc.verifyExternalOtp(id, contact, otp);
+    return this.svc.verifyExternalOtp(id, contact, otp, attribution);
   }
 }

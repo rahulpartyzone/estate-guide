@@ -62,6 +62,8 @@ export class SiteContentService {
     if (has('address')) data.address = toNullableString(dto.address);
     if (has('logoUrl')) data.logoUrl = toNullableString(dto.logoUrl);
     if (has('headerLogoUrl')) data.headerLogoUrl = toNullableString(dto.headerLogoUrl);
+    if (has('ga4MeasurementId')) data.ga4MeasurementId = toNullableString(dto.ga4MeasurementId)?.toUpperCase() ?? null;
+    if (has('metaPixelId')) data.metaPixelId = toNullableString(dto.metaPixelId);
 
     if (existing) {
       return this.db.siteProfile.update({

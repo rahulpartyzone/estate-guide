@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import { usePageTitle } from "@/lib/pageTitle";
 import Hero from "@/components/Hero";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
@@ -24,6 +25,7 @@ type LandingHeroContent = {
 };
 
 const Index = () => {
+  usePageTitle(null);
   const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
   const absolutize = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
 

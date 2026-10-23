@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import { usePageTitle } from "@/lib/pageTitle";
 import PropertyCard from "@/components/PropertyCard";
 import LeadPreferenceForm from "@/components/LeadPreferenceForm";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import PageState from "@/components/public/PageState";
 import heroBuildingImage from "@/assets/hero-building.jpg";
 
 const Projects = () => {
+  usePageTitle("Residential projects");
   const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
   const absolutize = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
 

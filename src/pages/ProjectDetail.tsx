@@ -18,14 +18,18 @@ import { mapBackendProperty, formatINRShort } from '@/lib/propertyMapper';
 import { absolutizeApiUrl } from "@/lib/url";
 import type { Property } from '@/types/property';
 import { toggleSaved, useSavedIds } from '@/lib/saved';
+import { usePageTitle } from '@/lib/pageTitle';
+import ProjectEnquiryDialog, { type EnquiryMode } from '@/components/ProjectEnquiryDialog';
 
 const ProjectDetail = () => {
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const savedIds = useSavedIds();
+  const [enquiry, setEnquiry] = useState<EnquiryMode | null>(null);
   const isSaved = Boolean(id && savedIds.includes(id));
   const [property, setProperty] = useState<Property | undefined>(undefined);
+  usePageTitle(property?.name || null);
   const [galleryApi, setGalleryApi] = useState<CarouselApi | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [otpOpen, setOtpOpen] = useState(false);
@@ -783,12 +787,12 @@ const ProjectDetail = () => {
                     Chat on WhatsApp
                   </Button>
                   
-                  <Button variant="outline" className="w-full py-6">
+                  <Button variant="outline" className="w-full py-6" onClick={() => setEnquiry("site_visit")}>
                     <Phone className="h-5 w-5 mr-2" />
                     Schedule Site Visit
                   </Button>
 
-                  <Button variant="outline" className="w-full py-6">
+                  <Button variant="outline" className="w-full py-6" onClick={() => setEnquiry("info")}>
                     <Mail className="h-5 w-5 mr-2" />
                     Get More Info
                   </Button>
@@ -865,6 +869,9 @@ const ProjectDetail = () => {
           )}
         </DialogContent>
       </Dialog>
+      {id && property && (
+        <ProjectEnquiryDialog mode={enquiry} onClose={() => setEnquiry(null)} propertyId={id} propertyName={property.name} />
+      )}
     </div>
   );
 };

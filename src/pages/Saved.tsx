@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePageTitle } from "@/lib/pageTitle";
 import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import Header from "@/components/Header";
@@ -10,6 +11,7 @@ import { useSavedIds } from "@/lib/saved";
 import type { Property } from "@/types/property";
 
 const Saved = () => {
+  usePageTitle("Saved projects");
   const savedIds = useSavedIds();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);

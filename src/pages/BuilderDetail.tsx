@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { usePageTitle } from "@/lib/pageTitle";
 import { useParams } from "react-router-dom";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
@@ -38,6 +39,7 @@ const BuilderDetail = () => {
 
   const { id } = useParams();
   const [builder, setBuilder] = useState<BuilderDetailData | null>(null);
+  usePageTitle(builder?.name || null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

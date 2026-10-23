@@ -8,6 +8,16 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 
+// "google / cpc", "facebook.com (referral)", or "Direct" for leads with nothing recorded
+function sourceOf(l: any): string {
+  if (l.utmSource) return l.utmMedium ? `${l.utmSource} / ${l.utmMedium}` : l.utmSource;
+  const ref = l.attribution?.referrer;
+  if (ref) {
+    try { return `${new URL(ref).hostname.replace(/^www\./, '')} (referral)`; } catch { /* not a URL */ }
+  }
+  return 'Direct';
+}
+
 const STATUSES = [
   { value: 'new', label: 'New' },
   { value: 'contacted', label: 'Contacted' },
@@ -130,12 +140,13 @@ export default function AdminLeads() {
                 <TableHead>Email</TableHead>
                 <TableHead>Preference</TableHead>
                 <TableHead>Loan</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={9} className="text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></TableCell></TableRow>
               ) : leads.length ? (
                 leads.map((l) => (
                   <TableRow key={l.id}>
@@ -147,6 +158,7 @@ export default function AdminLeads() {
                     <TableCell>{l.email || '-'}</TableCell>
                     <TableCell className="text-xs">{[l.preferredPropertyType, l.preferredBudgetRange].filter(Boolean).join(' • ') || '-'}</TableCell>
                     <TableCell>{typeof l.needsHomeLoanAssistance === 'boolean' ? (l.needsHomeLoanAssistance ? 'Yes' : 'No') : '-'}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap" title={l.utmCampaign ? `Campaign: ${l.utmCampaign}` : undefined}>{sourceOf(l)}{l.utmCampaign ? ` · ${l.utmCampaign}` : ''}</TableCell>
                     <TableCell>
                       <Select value={l.status || 'new'} onValueChange={(v) => changeStatus(l.id, v)} disabled={savingId === l.id}>
                         <SelectTrigger className="h-8 w-[120px]"><SelectValue /></SelectTrigger>
@@ -158,7 +170,7 @@ export default function AdminLeads() {
                   </TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">No leads</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">No leads</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

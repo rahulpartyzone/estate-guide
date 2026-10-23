@@ -305,10 +305,18 @@ model Lead {
   preferredLocation     String?
   needsHomeLoanAssistance Boolean?
   sourcePage            String?
+  // Where the visitor came from (first visit): utm_source / utm_medium / utm_campaign,
+  // plus term, content, gclid, fbclid, referrer and landing page in `attribution`
+  utmSource             String?
+  utmMedium             String?
+  utmCampaign           String?
+  attribution           Json?
   preferredDate DateTime?
   status        String    @default("new") // new|contacted|closed|invalid
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@index([utmSource])
 }
 
 model BrochureOtp {
@@ -383,6 +391,9 @@ model SiteProfile {
   address     String?
   logoUrl     String?
   headerLogoUrl String?
+  // Analytics, set in Admin -> Settings
+  ga4MeasurementId String?
+  metaPixelId      String?
   executives  Executive[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

@@ -17,6 +17,7 @@ import AdminRoles from "@/components/admin/AdminRoles";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminChangePassword from "@/components/admin/AdminChangePassword";
 import AdminDashboard from "@/components/admin/AdminDashboard";
+import AdminAnalyticsSettings from "@/components/admin/AdminAnalyticsSettings";
 import { LogOut } from "lucide-react";
 import { api } from "@/lib/api";
 import { absolutizeApiUrl } from "@/lib/url";
@@ -144,7 +145,12 @@ const Admin = () => {
       case "amenities":
         return <AdminAmenities />;
       case "settings":
-        return <AdminSettings />;
+        return (
+          <>
+            <AdminSettings />
+            <AdminAnalyticsSettings />
+          </>
+        );
       default:
         return <AdminProjects />;
     }

@@ -13,6 +13,7 @@ import Builders from "./pages/Builders";
 import BuilderDetail from "./pages/BuilderDetail";
 import AcceptInvite from "./pages/AcceptInvite";
 import Saved from "./pages/Saved";
+import AnalyticsTracker from "./components/AnalyticsTracker";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <AnalyticsTracker />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/projects" element={<Projects />} />

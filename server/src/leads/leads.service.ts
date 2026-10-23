@@ -6,6 +6,7 @@ import * as argon2 from 'argon2';
 import { GcsService } from '../storage/gcs.service';
 import { Msg91Service } from '../msg91/msg91.service';
 import { LeadAlertsService } from './lead-alerts.service';
+import { attributionFields } from './attribution';
 
 // Per-IP OTP throttle. Counted from the BrochureOtp table so the limit holds across all
 // serverless instances (an in-memory counter only sees the requests that hit one instance).
@@ -23,8 +24,8 @@ export class LeadsService {
   ) {}
 
   /** Creates a lead and emails the sales team (see LeadAlertsService). */
-  private async createLead(data: Prisma.LeadUncheckedCreateInput) {
-    const lead = await this.prisma.lead.create({ data });
+  private async createLead(data: Prisma.LeadUncheckedCreateInput, attribution?: unknown) {
+    const lead = await this.prisma.lead.create({ data: { ...data, ...attributionFields(attribution) } });
     await this.alerts.notify(lead);
     return lead;
   }
@@ -34,15 +35,15 @@ export class LeadsService {
       propertyId,
       type: 'site_visit',
       name: dto.name,
-      email: dto.email,
+      email: dto.email || '',
       phone: dto.phone,
       message: dto.message,
       preferredDate: dto.preferredDate ? new Date(dto.preferredDate) : undefined,
-    });
+    }, dto.attribution);
   }
 
   async createInfo(propertyId: string, dto: LeadBaseDto) {
-    return this.createLead({ propertyId, type: 'info', name: dto.name, email: dto.email, phone: dto.phone, message: dto.message });
+    return this.createLead({ propertyId, type: 'info', name: dto.name, email: dto.email || '', phone: dto.phone, message: dto.message }, dto.attribution);
   }
 
   async createPreference(dto: LeadPreferenceDto) {
@@ -57,7 +58,7 @@ export class LeadsService {
       needsHomeLoanAssistance: dto.homeLoanAssistance === 'yes',
       sourcePage: dto.sourcePage || null,
       message: `Preference lead from ${dto.sourcePage || 'site'}`,
-    });
+    }, dto.attribution);
   }
 
   private async recentOtpCount(propertyId: string, contact: string) {
@@ -89,7 +90,7 @@ export class LeadsService {
     }
   }
 
-  async verifyOtp(propertyId: string, contact: string | undefined, otp: string) {
+  async verifyOtp(propertyId: string, contact: string | undefined, otp: string, attribution?: unknown) {
     if (!contact) throw new BadRequestException('Contact required');
     const record = await this.prisma.brochureOtp.findFirst({ where: { propertyId, contact }, orderBy: { createdAt: 'desc' } });
     if (!record) throw new BadRequestException('OTP not requested');
@@ -103,7 +104,7 @@ export class LeadsService {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const exists = await this.prisma.lead.findFirst({ where: { propertyId, phone: contact, type: 'brochure', createdAt: { gte: since } } });
       if (!exists) {
-        await this.createLead({ propertyId, type: 'brochure', name: 'Brochure Lead', email: '', phone: contact, message: 'OTP verified - brochure download' });
+        await this.createLead({ propertyId, type: 'brochure', name: 'Brochure Lead', email: '', phone: contact, message: 'OTP verified - brochure download' }, attribution);
       }
     } catch (_) {}
     // Provide brochure URL if exists
@@ -125,7 +126,7 @@ export class LeadsService {
    * Verify brochure access using MSG91 widget access token instead of our OTP.
    * If MSG91 confirms the token, we return the same brochure URL as in OTP flow.
    */
-  async verifyWidgetToken(propertyId: string, accessToken: string, phone?: string, propertyName?: string) {
+  async verifyWidgetToken(propertyId: string, accessToken: string, phone?: string, propertyName?: string, attribution?: unknown) {
     const res = await this.msg91.verifyWidgetAccessToken(accessToken);
     // MSG91 typical success shape: { type: 'success', ... }
     if (!res || (res.type && String(res.type).toLowerCase() !== 'success')) {
@@ -139,7 +140,7 @@ export class LeadsService {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const exists = await this.prisma.lead.findFirst({ where: { propertyId, type: 'brochure', ...(phone ? { phone } : {}), createdAt: { gte: since } } });
       if (!exists) {
-        await this.createLead({ propertyId, type: 'brochure', name: propertyName || 'Brochure Lead', email: '', phone: phone || '', message: 'Widget verified - brochure download' });
+        await this.createLead({ propertyId, type: 'brochure', name: propertyName || 'Brochure Lead', email: '', phone: phone || '', message: 'Widget verified - brochure download' }, attribution);
       }
     } catch (_) {}
     const match = b.match(/^gs:\/\/[^/]+\/(.+)$/);
@@ -192,7 +193,7 @@ export class LeadsService {
    * Verify OTP via MSG91 (server-side) when widget didn't return a token.
    * On success, return the brochure download URL.
    */
-  async verifyExternalOtp(propertyId: string, contact: string, otp: string) {
+  async verifyExternalOtp(propertyId: string, contact: string, otp: string, attribution?: unknown) {
     if (!contact || !otp) throw new BadRequestException('contact and otp required');
     const res = await this.msg91.verifyOtpExternal(contact, otp);
     const ok = res && String(res.type || res.status || '').toLowerCase() === 'success';
@@ -205,7 +206,7 @@ export class LeadsService {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const exists = await this.prisma.lead.findFirst({ where: { propertyId, phone: contact, type: 'brochure', createdAt: { gte: since } } });
       if (!exists) {
-        await this.createLead({ propertyId, type: 'brochure', name: 'Brochure Lead', email: '', phone: contact, message: 'External OTP verified - brochure download' });
+        await this.createLead({ propertyId, type: 'brochure', name: 'Brochure Lead', email: '', phone: contact, message: 'External OTP verified - brochure download' }, attribution);
       }
     } catch (_) {}
     const match = b.match(/^gs:\/\/[^/]+\/(.+)$/);
@@ -222,29 +223,42 @@ export class LeadsService {
     if (type) where.type = type;
     if (since) where.createdAt = { gte: since };
     const items = await this.prisma.lead.findMany({ where, orderBy: { createdAt: 'desc' }, include: { property: { select: { name: true, city: true, area: true } } } });
-    const headers = ['id','createdAt','type','status','propertyId','propertyName','city','area','name','email','phone','preferredPropertyType','preferredBudgetRange','preferredLocation','needsHomeLoanAssistance','sourcePage','message'];
+    const headers = ['id','createdAt','type','status','propertyId','propertyName','city','area','name','email','phone','preferredPropertyType','preferredBudgetRange','preferredLocation','needsHomeLoanAssistance','sourcePage','utmSource','utmMedium','utmCampaign','referrer','landingPage','message'];
+    // Quote every cell, escape quotes, and neutralise spreadsheet formulas (=, +, -, @) typed into forms.
+    const cell = (value: unknown) => {
+      let text = value === null || value === undefined ? '' : String(value);
+      text = text.replace(/[\r\n]+/g, ' ');
+      if (/^[=+\-@\t]/.test(text)) text = `'${text}`;
+      return `"${text.replace(/"/g, '""')}"`;
+    };
     const rows = [headers.join(',')];
     for (const l of items) {
+      const extra = (l.attribution && typeof l.attribution === 'object' ? l.attribution : {}) as Record<string, unknown>;
       const vals = [
         l.id,
         l.createdAt.toISOString(),
         l.type,
         l.status,
-        l.propertyId || '',
-        l.property?.name || '',
-        l.property?.city || '',
-        l.property?.area || '',
-        (l.name||'').replace(/[,\n\r]/g,' '),
-        (l.email||'').replace(/[,\n\r]/g,' '),
-        (l.phone||'').replace(/[,\n\r]/g,' '),
-        ((l as any).preferredPropertyType||'').replace(/[,\n\r]/g,' '),
-        ((l as any).preferredBudgetRange||'').replace(/[,\n\r]/g,' '),
-        ((l as any).preferredLocation||'').replace(/[,\n\r]/g,' '),
-        (typeof (l as any).needsHomeLoanAssistance === 'boolean' ? String((l as any).needsHomeLoanAssistance) : ''),
-        ((l as any).sourcePage||'').replace(/[,\n\r]/g,' '),
-        (l.message||'').replace(/[,\n\r]/g,' '),
+        l.propertyId,
+        l.property?.name,
+        l.property?.city,
+        l.property?.area,
+        l.name,
+        l.email,
+        l.phone,
+        l.preferredPropertyType,
+        l.preferredBudgetRange,
+        l.preferredLocation,
+        typeof l.needsHomeLoanAssistance === 'boolean' ? String(l.needsHomeLoanAssistance) : '',
+        l.sourcePage,
+        l.utmSource,
+        l.utmMedium,
+        l.utmCampaign,
+        extra.referrer,
+        extra.landing_page,
+        l.message,
       ];
-      rows.push(vals.map(v => `"${v}"`).join(','));
+      rows.push(vals.map(cell).join(','));
     }
     return rows.join('\n');
   }

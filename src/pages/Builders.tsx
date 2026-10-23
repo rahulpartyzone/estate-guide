@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { usePageTitle } from "@/lib/pageTitle";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import LeadPreferenceForm from "@/components/LeadPreferenceForm";
@@ -25,6 +26,7 @@ interface Builder {
 }
 
 const Builders = () => {
+  usePageTitle("Builders");
   const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
   const absolutize = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
 

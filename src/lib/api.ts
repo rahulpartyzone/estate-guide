@@ -1,4 +1,14 @@
 // Simple API helper with credentials and JSON handling
+import { getAttribution } from './attribution';
+import { trackLead } from './analytics';
+
+// Lead endpoints send where the visitor came from, and report a conversion once the lead is saved.
+const withAttribution = <T extends object>(payload: T) => ({ ...payload, attribution: getAttribution() });
+const tracked = <R>(leadType: string, promise: Promise<R>) =>
+  promise.then((result) => {
+    trackLead(leadType);
+    return result;
+  });
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080/api/v1';
 
 // Restore persisted accessToken (if page reloaded) into sessionStorage
@@ -157,13 +167,13 @@ export const api = {
     return request<void>(`/properties/${propertyId}/brochure/request-otp`, { method: 'POST', body: JSON.stringify(payload) });
   },
   verifyBrochureOtp(propertyId: string, payload: { otp: string; contact?: string }) {
-    return request<{ downloadUrl: string }>(`/properties/${propertyId}/brochure/verify-otp`, { method: 'POST', body: JSON.stringify(payload) });
+    return tracked('brochure', request<{ downloadUrl: string }>(`/properties/${propertyId}/brochure/verify-otp`, { method: 'POST', body: JSON.stringify(withAttribution(payload)) }));
   },
   verifyBrochureWidget(propertyId: string, accessToken: string, opts?: { phone?: string; propertyName?: string }) {
-    return request<{ downloadUrl: string }>(`/properties/${propertyId}/brochure/verify-widget`, { method: 'POST', body: JSON.stringify({ accessToken, ...(opts||{}) }) });
+    return tracked('brochure', request<{ downloadUrl: string }>(`/properties/${propertyId}/brochure/verify-widget`, { method: 'POST', body: JSON.stringify(withAttribution({ accessToken, ...(opts||{}) })) }));
   },
   verifyBrochureExternalOtp(propertyId: string, payload: { contact: string; otp: string }) {
-    return request<{ downloadUrl: string }>(`/properties/${propertyId}/brochure/verify-external-otp`, { method: 'POST', body: JSON.stringify(payload) });
+    return tracked('brochure', request<{ downloadUrl: string }>(`/properties/${propertyId}/brochure/verify-external-otp`, { method: 'POST', body: JSON.stringify(withAttribution(payload)) }));
   },
   createPreferenceLead(payload: {
     preferredPropertyType: string;
@@ -175,7 +185,13 @@ export const api = {
     homeLoanAssistance: 'yes' | 'no';
     sourcePage?: string;
   }) {
-    return request<any>(`/leads/preference`, { method: 'POST', body: JSON.stringify(payload) });
+    return tracked('preference', request<any>(`/leads/preference`, { method: 'POST', body: JSON.stringify(withAttribution(payload)) }));
+  },
+  createSiteVisitLead(propertyId: string, payload: { name: string; phone: string; email?: string; message?: string; preferredDate?: string }) {
+    return tracked('site_visit', request<any>(`/properties/${propertyId}/leads/site-visit`, { method: 'POST', body: JSON.stringify(withAttribution(payload)) }));
+  },
+  createInfoLead(propertyId: string, payload: { name: string; phone: string; email?: string; message?: string }) {
+    return tracked('info', request<any>(`/properties/${propertyId}/leads/info`, { method: 'POST', body: JSON.stringify(withAttribution(payload)) }));
   },
 
   // Builders (public)

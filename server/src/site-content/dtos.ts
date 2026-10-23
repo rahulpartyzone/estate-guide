@@ -24,6 +24,9 @@ export class SiteProfileUpsertDto {
   @IsOptional() @IsUrl() instagramUrl?: string;
   @IsOptional() @IsUrl() googleUrl?: string;
   @IsOptional() @IsString() whatsappNumber?: string;
+  // Analytics. Empty string clears the value.
+  @IsOptional() @Matches(/^(G-[A-Z0-9]{4,20})?$/i, { message: 'GA4 Measurement ID looks like G-XXXXXXXXXX' }) ga4MeasurementId?: string;
+  @IsOptional() @Matches(/^([0-9]{6,20})?$/, { message: 'Meta Pixel ID is a number, e.g. 123456789012345' }) metaPixelId?: string;
   @IsOptional() @IsString() phone?: string;
   @IsOptional() @IsString() email?: string;
   @IsOptional() @IsUrl() website?: string;
