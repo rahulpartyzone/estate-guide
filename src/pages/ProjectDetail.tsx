@@ -753,8 +753,8 @@ const ProjectDetail = () => {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Price & CTA Card */}
-              <Card className="p-6 sticky top-6">
+              {/* Price & CTA Card (not sticky: the EMI and builder cards below would scroll under it) */}
+              <Card className="p-6">
                 <div className="text-center mb-6">
                   {property.reraId && (
                     <div className="text-sm text-muted-foreground mb-2">
