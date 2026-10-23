@@ -17,6 +17,8 @@ export class SubscribersService {
   }
 
   async unsubscribeByToken(token: string) {
+    // An empty token would otherwise match the first subscriber in the table.
+    if (typeof token !== 'string' || !token.trim()) throw new NotFoundException('Invalid token');
     const sub = await this.prisma.subscriber.findFirst({ where: { unsubscribeToken: token } });
     if (!sub) throw new NotFoundException('Invalid token');
     if (sub.status !== 'unsubscribed') {

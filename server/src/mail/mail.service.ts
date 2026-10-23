@@ -5,6 +5,10 @@ export interface MailMessage {
   subject: string;
   html: string;
   replyTo?: { email: string; name?: string };
+  /** Extra email headers, e.g. List-Unsubscribe for newsletters. */
+  headers?: Record<string, string>;
+  /** Brevo tags, handy for filtering its logs. */
+  tags?: string[];
 }
 
 /**
@@ -31,7 +35,7 @@ export class MailService {
   }
 
   /** Never throws: returns { sent: false, reason } so a mail problem can't break the request that triggered it. */
-  async send(message: MailMessage): Promise<{ sent: boolean; reason?: string }> {
+  async send(message: MailMessage): Promise<{ sent: boolean; reason?: string; status?: number }> {
     if (!this.isConfigured()) return { sent: false, reason: 'BREVO_API_KEY or MAIL_FROM_EMAIL not configured' };
     const to = message.to.map((e) => e.trim()).filter(Boolean);
     if (!to.length) return { sent: false, reason: 'No recipients' };
@@ -45,13 +49,17 @@ export class MailService {
           subject: message.subject,
           htmlContent: message.html,
           ...(message.replyTo?.email ? { replyTo: message.replyTo } : {}),
+          ...(message.headers && Object.keys(message.headers).length ? { headers: message.headers } : {}),
+          ...(message.tags?.length ? { tags: message.tags } : {}),
         }),
         signal: AbortSignal.timeout(5000),
       });
       if (!res.ok) {
         const body = await res.text().catch(() => '');
         this.logger.warn(`Brevo ${res.status}: ${body.slice(0, 300)}`);
-        return { sent: false, reason: `Brevo API error ${res.status}` };
+        let detail = '';
+        try { detail = JSON.parse(body)?.message || ''; } catch { /* not JSON */ }
+        return { sent: false, status: res.status, reason: `Brevo API error ${res.status}${detail ? `: ${detail}` : ''}` };
       }
       return { sent: true };
     } catch (e) {

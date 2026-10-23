@@ -8,6 +8,7 @@ import { BuildersModule } from './builders/builders.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { TestimonialsModule } from './testimonials/testimonials.module';
 import { SubscribersModule } from './subscribers/subscribers.module';
+import { NewslettersModule } from './newsletters/newsletters.module';
 import { LeadsModule } from './leads/leads.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { AgentsModule } from './agents/agents.module';
@@ -31,6 +32,7 @@ import { MailModule } from './mail/mail.module';
     BuildersModule,
     TestimonialsModule,
     SubscribersModule,
+    NewslettersModule,
     LeadsModule,
     WishlistModule,
     AgentsModule,

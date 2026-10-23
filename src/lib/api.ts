@@ -21,6 +21,42 @@ try {
 
 export interface ApiError { status: number; message: string }
 
+export interface NewsletterInput {
+  subject: string;
+  previewText?: string;
+  body?: string;
+  propertyIds?: string[];
+  ctaLabel?: string;
+  ctaUrl?: string;
+}
+export interface Newsletter {
+  id: string;
+  subject: string;
+  previewText?: string | null;
+  body: string;
+  propertyIds: string[];
+  ctaLabel?: string | null;
+  ctaUrl?: string | null;
+  status: 'draft' | 'sending' | 'sent';
+  recipientCount: number;
+  sentCount: number;
+  failedCount: number;
+  startedAt?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface NewsletterProgress {
+  id: string;
+  status: Newsletter['status'];
+  recipientCount: number;
+  sentCount: number;
+  failedCount: number;
+  remaining: number;
+  rateLimited?: boolean;
+  lastError?: string;
+}
+
 let refreshInFlight: Promise<boolean> | null = null;
 async function ensureAccessTokenForAdmin() {
   if (sessionStorage.getItem('accessToken')) return;
@@ -287,6 +323,30 @@ export const api = {
       const blob = await res.blob();
       return blob;
     });
+  },
+
+  // Admin Newsletters
+  listNewsletters() {
+    return request<{ data: Newsletter[]; activeSubscribers: number; mailConfigured: boolean; siteUrl: string }>(`/admin/newsletters`);
+  },
+  listNewsletterProjects() {
+    return request<{ id: string; name: string; area: string; city: string; mainImageUrl?: string }[]>(`/admin/newsletters/projects`);
+  },
+  getNewsletter(id: string) { return request<Newsletter>(`/admin/newsletters/${id}`); },
+  createNewsletter(body: NewsletterInput) { return request<Newsletter>(`/admin/newsletters`, { method: 'POST', body: JSON.stringify(body) }); },
+  updateNewsletter(id: string, body: NewsletterInput) { return request<Newsletter>(`/admin/newsletters/${id}`, { method: 'PUT', body: JSON.stringify(body) }); },
+  deleteNewsletter(id: string) { return request<void>(`/admin/newsletters/${id}`, { method: 'DELETE' }); },
+  duplicateNewsletter(id: string) { return request<Newsletter>(`/admin/newsletters/${id}/duplicate`, { method: 'POST' }); },
+  previewNewsletter(body: NewsletterInput) {
+    return request<{ html: string; siteUrl: string }>(`/admin/newsletters/preview`, { method: 'POST', body: JSON.stringify(body) });
+  },
+  sendNewsletterTest(id: string, email?: string) {
+    return request<{ sentTo: string }>(`/admin/newsletters/${id}/test`, { method: 'POST', body: JSON.stringify({ email: email || undefined }) });
+  },
+  sendNewsletterBatch(id: string) { return request<NewsletterProgress>(`/admin/newsletters/${id}/send`, { method: 'POST' }); },
+  retryNewsletterFailed(id: string) { return request<NewsletterProgress>(`/admin/newsletters/${id}/retry-failed`, { method: 'POST' }); },
+  listNewsletterFailures(id: string) {
+    return request<{ email: string; error?: string | null; updatedAt: string }[]>(`/admin/newsletters/${id}/failures`);
   },
 
   // Admin Leads

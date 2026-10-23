@@ -111,6 +111,7 @@ Do steps 3 to 6 in one sitting. Anything saved on the local site after step 3.2 
    | `MSG91_AUTH_KEY`, `MSG91_TOKEN_AUTH`, `MSG91_WIDGET_ID`, `MSG91_SENDER_ID`, `MSG91_TEMPLATE_ID` | your MSG91 values |
    | `APP_BASE_URL` | `https://www.yourhomesearch.co.in` |
    | `INVITE_EMAIL_PROVIDER`, `INVITE_FROM_NAME`, `INVITE_FROM_EMAIL`, `BREVO_API_KEY` | your invite email settings (also used for new-lead alerts; who gets them is set per user in Admin → Users) |
+   | `PUBLIC_SITE_URL` (optional) | where links in newsletters point, including the unsubscribe link. Until DNS points to Vercel, set it to `https://estate-guide-web.vercel.app`; afterwards `https://www.yourhomesearch.co.in`. Falls back to `APP_BASE_URL`. |
 
 4. Deploy, then open `https://estate-guide-nine.vercel.app/api/v1/healthz`. The build log should show "Applying database migrations" and "No pending migrations".
 

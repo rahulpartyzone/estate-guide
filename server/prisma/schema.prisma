@@ -296,6 +296,45 @@ model Subscriber {
   unsubscribeToken String    @unique
 }
 
+/// An email newsletter written in Admin -> Subscribers -> Newsletters and sent to active subscribers.
+model Newsletter {
+  id             String               @id @default(uuid())
+  subject        String
+  previewText    String?
+  body           String               @default("")
+  propertyIds    String[]
+  ctaLabel       String?
+  ctaUrl         String?
+  status         String               @default("draft") // draft|sending|sent
+  recipientCount Int                  @default(0)
+  sentCount      Int                  @default(0)
+  failedCount    Int                  @default(0)
+  createdById    String?
+  startedAt      DateTime?
+  sentAt         DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  deliveries     NewsletterDelivery[]
+
+  @@index([createdAt])
+}
+
+/// One row per subscriber a newsletter went to, so a send can be resumed without emailing anyone twice.
+model NewsletterDelivery {
+  id           String     @id @default(uuid())
+  newsletterId String
+  newsletter   Newsletter @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+  subscriberId String
+  email        String
+  status       String // pending|sent|failed
+  error        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([newsletterId, subscriberId])
+  @@index([newsletterId, status])
+}
+
 model Lead {
   id            String    @id @default(uuid())
   propertyId    String?

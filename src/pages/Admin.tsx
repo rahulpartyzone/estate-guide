@@ -8,6 +8,8 @@ import AdminProjects from "@/components/admin/AdminProjects";
 import AdminTestimonials from "@/components/admin/AdminTestimonials";
 import AdminBuilders from "@/components/admin/AdminBuilders";
 import AdminSubscribers from "@/components/admin/AdminSubscribers";
+import AdminNewsletters from "@/components/admin/AdminNewsletters";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminLeads from "@/components/admin/AdminLeads";
 import AdminAmenities from "@/components/admin/AdminAmenities";
 import AdminCompany from "@/components/admin/AdminCompany";
@@ -80,7 +82,7 @@ const Admin = () => {
       title: "Engagement",
       items: [
         { key: "leads", label: "Leads" },
-        { key: "subscribers", label: "Subscribers" },
+        { key: "subscribers", label: "Newsletter" },
       ],
     },
     {
@@ -135,7 +137,20 @@ const Admin = () => {
       case "leads":
         return <AdminLeads />;
       case "subscribers":
-        return <AdminSubscribers />;
+        return (
+          <Tabs defaultValue="newsletters" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="newsletters">Newsletters</TabsTrigger>
+              <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
+            </TabsList>
+            <TabsContent value="newsletters">
+              <AdminNewsletters />
+            </TabsContent>
+            <TabsContent value="subscribers">
+              <AdminSubscribers />
+            </TabsContent>
+          </Tabs>
+        );
       case "users":
         return <AdminUsers />;
       case "roles":
