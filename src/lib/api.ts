@@ -123,10 +123,10 @@ export const api = {
   listTestimonialsAdmin() {
     return request<any[]>(`/admin/testimonials`);
   },
-  createTestimonial(payload: { name: string; role: string; company: string; content: string; rating: number; published?: boolean }) {
+  createTestimonial(payload: { name: string; role: string; company: string; content: string; rating: number; published?: boolean; photoUrl?: string | null; attachmentUrl?: string | null; attachmentMimeType?: string | null }) {
     return request<any>(`/admin/testimonials`, { method: 'POST', body: JSON.stringify(payload) });
   },
-  updateTestimonial(id: string, payload: { name: string; role: string; company: string; content: string; rating: number; published?: boolean }) {
+  updateTestimonial(id: string, payload: { name: string; role: string; company: string; content: string; rating: number; published?: boolean; photoUrl?: string | null; attachmentUrl?: string | null; attachmentMimeType?: string | null }) {
     return request<any>(`/admin/testimonials/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
   },
   deleteTestimonial(id: string) {

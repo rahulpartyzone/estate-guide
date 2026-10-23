@@ -248,6 +248,11 @@ model Testimonial {
   content   String
   rating    Int
   published Boolean  @default(false)
+  // Client's photo, shown next to their name
+  photoUrl           String?
+  // Proof of the testimonial: a scan or photo of a handwritten note or letter (image or PDF)
+  attachmentUrl      String?
+  attachmentMimeType String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -8,9 +8,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, FileText, ImageIcon, BadgeCheck, X } from "lucide-react";
+import { absolutizeApiUrl } from "@/lib/url";
 
-interface Testimonial { id: string; name: string; role: string; company: string; content: string; rating: number; published: boolean }
+interface Testimonial {
+  id: string; name: string; role: string; company: string; content: string; rating: number; published: boolean;
+  photoUrl?: string | null; attachmentUrl?: string | null; attachmentMimeType?: string | null;
+}
+
+const RAW_API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:8080/api/v1";
+const fileUrl = (u?: string | null) => (u ? absolutizeApiUrl(u, RAW_API_BASE) : "");
+const MAX_PHOTO_MB = 10;
+const MAX_ATTACHMENT_MB = 25;
 
 // No local mock now; will fetch from API
 
@@ -18,7 +27,50 @@ const AdminTestimonials = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [attachment, setAttachment] = useState<{ url: string; mimeType: string } | null>(null);
+  const [uploading, setUploading] = useState<"photo" | "attachment" | null>(null);
   const { toast } = useToast();
+
+  // Load the photo and attachment of the testimonial being edited (or clear them for a new one)
+  useEffect(() => {
+    if (!isDialogOpen) return;
+    setPhotoUrl(editingTestimonial?.photoUrl || null);
+    setAttachment(
+      editingTestimonial?.attachmentUrl
+        ? { url: editingTestimonial.attachmentUrl, mimeType: editingTestimonial.attachmentMimeType || "" }
+        : null,
+    );
+  }, [isDialogOpen, editingTestimonial]);
+
+  const upload = async (kind: "photo" | "attachment", file: File | undefined) => {
+    if (!file) return;
+    const isPdf = file.type === "application/pdf";
+    const isImage = file.type.startsWith("image/");
+    if (kind === "photo" && !isImage) {
+      toast({ title: "Choose an image for the client photo", variant: "destructive" });
+      return;
+    }
+    if (kind === "attachment" && !isImage && !isPdf) {
+      toast({ title: "Attach an image or a PDF", variant: "destructive" });
+      return;
+    }
+    const limit = kind === "photo" ? MAX_PHOTO_MB : MAX_ATTACHMENT_MB;
+    if (file.size > limit * 1024 * 1024) {
+      toast({ title: `File is larger than ${limit} MB`, variant: "destructive" });
+      return;
+    }
+    setUploading(kind);
+    try {
+      const stored = await api.uploadFileDirect(file);
+      if (kind === "photo") setPhotoUrl(stored.url);
+      else setAttachment({ url: stored.url, mimeType: stored.mimeType || file.type });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setUploading(null);
+    }
+  };
 
   const load = async () => {
     try {
@@ -38,6 +90,9 @@ const AdminTestimonials = () => {
       company: formData.get("company") as string,
       content: formData.get("content") as string,
       rating: parseInt(formData.get("rating") as string),
+      photoUrl: photoUrl || null,
+      attachmentUrl: attachment?.url || null,
+      attachmentMimeType: attachment?.mimeType || null,
     };
 
     try {
@@ -94,7 +149,7 @@ const AdminTestimonials = () => {
               Add Testimonial
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingTestimonial ? "Edit Testimonial" : "Add New Testimonial"}
@@ -156,7 +211,48 @@ const AdminTestimonials = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="photo">Client photo (optional)</Label>
+                  {photoUrl ? (
+                    <div className="flex items-center gap-3">
+                      <img src={fileUrl(photoUrl)} alt="Client" className="h-14 w-14 rounded-full object-cover border" />
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setPhotoUrl(null)} className="gap-1">
+                        <X className="h-4 w-4" /> Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <Input id="photo" type="file" accept="image/*" disabled={uploading !== null}
+                      onChange={(e) => { upload("photo", e.target.files?.[0]); e.target.value = ""; }} />
+                  )}
+                  {uploading === "photo" && <div className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</div>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="attachment">Letter or handwritten note (optional)</Label>
+                  {attachment ? (
+                    <div className="flex items-center gap-3">
+                      <a href={fileUrl(attachment.url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary underline">
+                        {attachment.mimeType === "application/pdf" ? <FileText className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
+                        View
+                      </a>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setAttachment(null)} className="gap-1">
+                        <X className="h-4 w-4" /> Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <Input id="attachment" type="file" accept="image/*,application/pdf" disabled={uploading !== null}
+                      onChange={(e) => { upload("attachment", e.target.files?.[0]); e.target.value = ""; }} />
+                  )}
+                  {uploading === "attachment" && <div className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</div>}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Publish a client's photo or letter only with their permission. Cover phone numbers, addresses and
+                signatures you don't want public before uploading. Testimonials with an attachment show a
+                "Verified client" badge on the website.
+              </p>
+
+              <Button type="submit" className="w-full" disabled={uploading !== null}>
                 {editingTestimonial ? "Update Testimonial" : "Create Testimonial"}
               </Button>
             </form>
@@ -179,7 +275,13 @@ const AdminTestimonials = () => {
           <TableBody>
             {testimonials.map((testimonial) => (
               <TableRow key={testimonial.id}>
-                <TableCell className="font-medium">{testimonial.name}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    {testimonial.photoUrl && <img src={fileUrl(testimonial.photoUrl)} alt="" className="h-8 w-8 rounded-full object-cover" />}
+                    <span>{testimonial.name}</span>
+                    {testimonial.attachmentUrl && <BadgeCheck className="h-4 w-4 text-primary" aria-label="Has an attachment" />}
+                  </div>
+                </TableCell>
                 <TableCell>{testimonial.role}</TableCell>
                 <TableCell>{testimonial.company}</TableCell>
                 <TableCell>⭐ {testimonial.rating}/5</TableCell>
