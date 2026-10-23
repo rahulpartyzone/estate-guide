@@ -16,6 +16,7 @@ import AdminUsers from "@/components/admin/AdminUsers";
 import AdminRoles from "@/components/admin/AdminRoles";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminChangePassword from "@/components/admin/AdminChangePassword";
+import AdminDashboard from "@/components/admin/AdminDashboard";
 import { LogOut } from "lucide-react";
 import { api } from "@/lib/api";
 import { absolutizeApiUrl } from "@/lib/url";
@@ -23,10 +24,10 @@ import { absolutizeApiUrl } from "@/lib/url";
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authReady, setAuthReady] = useState(false); // ensures access token present before rendering admin content
-  const [activeMenu, setActiveMenu] = useState("projects");
+  const [activeMenu, setActiveMenu] = useState("dashboard");
   const [allowedMenuKeys, setAllowedMenuKeys] = useState<Set<string> | null>(null);
   const [menuLoading, setMenuLoading] = useState(false);
-  const [email, setEmail] = useState("admin@local.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [currentUserEmail, setCurrentUserEmail] = useState("");
   const [currentUserRoles, setCurrentUserRoles] = useState<string[]>([]);
@@ -55,6 +56,10 @@ const Admin = () => {
   };
 
   const menuGroups = [
+    {
+      title: "Overview",
+      items: [{ key: "dashboard", label: "Dashboard" }],
+    },
     {
       title: "Operations",
       items: [
@@ -114,6 +119,8 @@ const Admin = () => {
 
   const renderActiveModule = () => {
     switch (activeMenu) {
+      case "dashboard":
+        return <AdminDashboard />;
       case "projects":
         return <AdminProjects />;
       case "builders":

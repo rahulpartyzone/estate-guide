@@ -1,12 +1,22 @@
-import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { TestimonialsService } from './testimonials.service';
 import { JwtCookieAuthGuard } from '../auth/jwt.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { PublishDto, TestimonialCreateDto, TestimonialUpdateDto } from './dtos';
 
 @Controller('admin/testimonials')
-@UseGuards(JwtCookieAuthGuard)
+@UseGuards(JwtCookieAuthGuard, PermissionsGuard)
+@RequirePermissions('testimonials.write')
 export class AdminTestimonialsController {
   constructor(private readonly svc: TestimonialsService) {}
+
+  /** All testimonials, published or not, for the admin screen. */
+  @Get()
+  @RequirePermissions('testimonials.read')
+  list() {
+    return this.svc.list();
+  }
 
   @Post()
   create(@Body() dto: TestimonialCreateDto) {

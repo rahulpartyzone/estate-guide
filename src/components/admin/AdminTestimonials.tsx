@@ -22,12 +22,7 @@ const AdminTestimonials = () => {
 
   const load = async () => {
     try {
-      const published = await api.listTestimonials(true);
-      const drafts = await api.listTestimonials(false).catch(()=>[]);
-      // Merge ensuring uniqueness
-      const map = new Map<string, Testimonial>();
-      [...published, ...drafts].forEach((t: any) => map.set(t.id, t));
-      setTestimonials(Array.from(map.values()));
+      setTestimonials(await api.listTestimonialsAdmin());
     } catch (e: any) {
       toast({ title: 'Failed to load testimonials', description: e.message, variant: 'destructive' });
     }

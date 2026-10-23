@@ -7,11 +7,19 @@ import { Loader2, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/lib/api';
 
+const STATUSES = [
+  { value: 'new', label: 'New' },
+  { value: 'contacted', label: 'Contacted' },
+  { value: 'closed', label: 'Closed' },
+  { value: 'invalid', label: 'Invalid' },
+];
+
 export default function AdminLeads() {
   const [loading, setLoading] = useState(false);
   const [leads, setLeads] = useState<any[]>([]);
   const [type, setType] = useState<string>('all'); // 'all' | 'brochure' | 'site_visit' | 'info' | 'preference'
-  const [status, setStatus] = useState<string>('');
+  const [status, setStatus] = useState<string>('all');
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [total, setTotal] = useState(0);
@@ -21,7 +29,7 @@ export default function AdminLeads() {
     setLoading(true);
     try {
       const typeParam = type === 'all' ? undefined : type;
-      const res = await api.listLeads({ type: typeParam, status, page, pageSize });
+      const res = await api.listLeads({ type: typeParam, status: status === 'all' ? undefined : status, page, pageSize });
       setLeads(res.data || []);
       setTotal(res.meta?.total || 0);
     } catch (e: any) {
@@ -45,6 +53,20 @@ export default function AdminLeads() {
     }
   };
 
+  const changeStatus = async (id: string, next: string) => {
+    const previous = leads.find((l) => l.id === id)?.status;
+    setLeads((rows) => rows.map((l) => (l.id === id ? { ...l, status: next } : l)));
+    setSavingId(id);
+    try {
+      await api.updateLeadStatus(id, next);
+    } catch (e: any) {
+      setLeads((rows) => rows.map((l) => (l.id === id ? { ...l, status: previous } : l)));
+      toast({ title: 'Could not update status', description: e?.message || 'Please try again', variant: 'destructive' });
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const pages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
@@ -60,6 +82,13 @@ export default function AdminLeads() {
               <SelectItem value="site_visit">Site Visit</SelectItem>
               <SelectItem value="info">Info</SelectItem>
               <SelectItem value="preference">Preference</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={status} onValueChange={(v)=>{ setStatus(v); setPage(1); }}>
+            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any status</SelectItem>
+              {STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
             </SelectContent>
           </Select>
           <Button onClick={exportCsv} className="gap-2" size="sm"><Download className="h-4 w-4" /> Export (6m)</Button>
@@ -95,7 +124,14 @@ export default function AdminLeads() {
                     <TableCell>{l.email || '-'}</TableCell>
                     <TableCell className="text-xs">{[l.preferredPropertyType, l.preferredBudgetRange].filter(Boolean).join(' • ') || '-'}</TableCell>
                     <TableCell>{typeof l.needsHomeLoanAssistance === 'boolean' ? (l.needsHomeLoanAssistance ? 'Yes' : 'No') : '-'}</TableCell>
-                    <TableCell className="capitalize">{l.status || '-'}</TableCell>
+                    <TableCell>
+                      <Select value={l.status || 'new'} onValueChange={(v) => changeStatus(l.id, v)} disabled={savingId === l.id}>
+                        <SelectTrigger className="h-8 w-[120px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (

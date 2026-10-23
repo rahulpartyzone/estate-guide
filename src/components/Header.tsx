@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useSavedIds } from "@/lib/saved";
 import { Button } from "@/components/ui/button";
 import { Building2, Menu, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -10,6 +11,7 @@ const Header = () => {
   const [showAbout, setShowAbout] = useState(false);
   const [logoUrl, setLogoUrl] = useState("");
   const [companyName, setCompanyName] = useState("YourHomeSearch");
+  const savedCount = useSavedIds().length;
 
   useEffect(() => {
     let cancelled = false;
@@ -43,8 +45,9 @@ const Header = () => {
       { name: "News", href: "/news" },
     ];
     if (showAbout) links.push({ name: "About", href: "/about" });
+    if (savedCount > 0) links.push({ name: `Saved (${savedCount})`, href: "/saved" });
     return links;
-  }, [showAbout]);
+  }, [showAbout, savedCount]);
 
   return (
     <header className="bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 z-50">

@@ -1,10 +1,13 @@
 import { Body, Controller, Delete, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { NeighborhoodsService } from './neighborhoods.service';
 import { JwtCookieAuthGuard } from '../auth/jwt.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { NeighborhoodCreateDto, NeighborhoodUpdateDto } from './dtos';
 
 @Controller('admin/neighborhoods')
-@UseGuards(JwtCookieAuthGuard)
+@UseGuards(JwtCookieAuthGuard, PermissionsGuard)
+@RequirePermissions('settings.write')
 export class AdminNeighborhoodsController {
   constructor(private readonly svc: NeighborhoodsService) {}
 

@@ -1,10 +1,13 @@
 import { Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Query, UseGuards, Res } from '@nestjs/common';
 import { SubscribersService } from './subscribers.service';
 import { JwtCookieAuthGuard } from '../auth/jwt.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { Response } from 'express';
 
 @Controller('admin/subscribers')
-@UseGuards(JwtCookieAuthGuard)
+@UseGuards(JwtCookieAuthGuard, PermissionsGuard)
+@RequirePermissions('subscribers.read')
 export class AdminSubscribersController {
   constructor(private readonly svc: SubscribersService) {}
 
@@ -14,6 +17,7 @@ export class AdminSubscribersController {
   }
 
   @Delete(':id')
+  @RequirePermissions('subscribers.write')
   @HttpCode(204)
   async remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     await this.svc.remove(id);

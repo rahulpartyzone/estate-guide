@@ -112,6 +112,10 @@ export class PropertiesService {
     return item;
   }
 
+  async recordView(id: string) {
+    await this.db.property.updateMany({ where: { id, published: true }, data: { views: { increment: 1 } } });
+  }
+
   async create(dto: PropertyCreateDto) {
     // Normalize & de-duplicate amenities (case-insensitive trim)
     const amenityNames = Array.from(

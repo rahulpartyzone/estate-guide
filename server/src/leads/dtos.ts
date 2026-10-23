@@ -1,4 +1,4 @@
-import { IsDateString, IsEmail, IsInt, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, Max, Min } from 'class-validator';
 
 export class LeadBaseDto {
   @IsString()
@@ -42,9 +42,11 @@ export class OTPVerifyDto {
   contact?: string; // phone or email
 }
 
+export const LEAD_STATUSES = ['new', 'contacted', 'closed', 'invalid'] as const;
+
 export class LeadStatusUpdateDto {
-  @IsString()
-  status!: string; // validate against enum values upstream if desired
+  @IsIn(LEAD_STATUSES as unknown as string[])
+  status!: string;
 }
 
 export class LeadPreferenceDto {

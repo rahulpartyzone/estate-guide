@@ -25,8 +25,10 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const authz = await this.authService.getAuthorizationContext(userId);
-    const hasAllPermissions = requiredPermissions.every((permission) =>
-      authz.permissions.includes(permission),
+    // Each entry must be satisfied. An entry may list alternatives separated by "|"
+    // (e.g. 'company.write|settings.write' for an endpoint two admin screens share).
+    const hasAllPermissions = requiredPermissions.every((entry) =>
+      entry.split('|').some((permission) => authz.permissions.includes(permission.trim())),
     );
 
     if (!hasAllPermissions) {

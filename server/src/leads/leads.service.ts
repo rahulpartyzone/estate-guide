@@ -1,9 +1,11 @@
 import { Injectable, BadRequestException, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LeadBaseDto, LeadPreferenceDto, LeadSiteVisitDto } from './dtos';
 import * as argon2 from 'argon2';
 import { GcsService } from '../storage/gcs.service';
 import { Msg91Service } from '../msg91/msg91.service';
+import { LeadAlertsService } from './lead-alerts.service';
 
 // Per-IP OTP throttle. Counted from the BrochureOtp table so the limit holds across all
 // serverless instances (an in-memory counter only sees the requests that hit one instance).
@@ -13,42 +15,48 @@ const inflightSend = new Set<string>(); // drops duplicate rapid clicks on one i
 
 @Injectable()
 export class LeadsService {
-  constructor(private readonly prisma: PrismaService, private readonly gcs: GcsService, private readonly msg91: Msg91Service) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gcs: GcsService,
+    private readonly msg91: Msg91Service,
+    private readonly alerts: LeadAlertsService,
+  ) {}
+
+  /** Creates a lead and emails the sales team (see LeadAlertsService). */
+  private async createLead(data: Prisma.LeadUncheckedCreateInput) {
+    const lead = await this.prisma.lead.create({ data });
+    await this.alerts.notify(lead);
+    return lead;
+  }
 
   async createSiteVisit(propertyId: string, dto: LeadSiteVisitDto) {
-    return this.prisma.lead.create({
-      data: {
-        propertyId,
-        type: 'site_visit',
-        name: dto.name,
-        email: dto.email,
-        phone: dto.phone,
-        message: dto.message,
-        preferredDate: dto.preferredDate ? new Date(dto.preferredDate) : undefined,
-      },
+    return this.createLead({
+      propertyId,
+      type: 'site_visit',
+      name: dto.name,
+      email: dto.email,
+      phone: dto.phone,
+      message: dto.message,
+      preferredDate: dto.preferredDate ? new Date(dto.preferredDate) : undefined,
     });
   }
 
   async createInfo(propertyId: string, dto: LeadBaseDto) {
-    return this.prisma.lead.create({
-      data: { propertyId, type: 'info', name: dto.name, email: dto.email, phone: dto.phone, message: dto.message },
-    });
+    return this.createLead({ propertyId, type: 'info', name: dto.name, email: dto.email, phone: dto.phone, message: dto.message });
   }
 
   async createPreference(dto: LeadPreferenceDto) {
-    return this.prisma.lead.create({
-      data: {
-        type: 'preference',
-        name: dto.name,
-        email: dto.email,
-        phone: dto.phone,
-        preferredPropertyType: dto.preferredPropertyType,
-        preferredBudgetRange: dto.preferredBudgetRange,
-        preferredLocation: dto.preferredLocation,
-        needsHomeLoanAssistance: dto.homeLoanAssistance === 'yes',
-        sourcePage: dto.sourcePage || null,
-        message: `Preference lead from ${dto.sourcePage || 'site'}`,
-      },
+    return this.createLead({
+      type: 'preference',
+      name: dto.name,
+      email: dto.email,
+      phone: dto.phone,
+      preferredPropertyType: dto.preferredPropertyType,
+      preferredBudgetRange: dto.preferredBudgetRange,
+      preferredLocation: dto.preferredLocation,
+      needsHomeLoanAssistance: dto.homeLoanAssistance === 'yes',
+      sourcePage: dto.sourcePage || null,
+      message: `Preference lead from ${dto.sourcePage || 'site'}`,
     });
   }
 
@@ -95,7 +103,7 @@ export class LeadsService {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const exists = await this.prisma.lead.findFirst({ where: { propertyId, phone: contact, type: 'brochure', createdAt: { gte: since } } });
       if (!exists) {
-        await this.prisma.lead.create({ data: { propertyId, type: 'brochure', name: 'Brochure Lead', email: '', phone: contact, message: 'OTP verified - brochure download' } });
+        await this.createLead({ propertyId, type: 'brochure', name: 'Brochure Lead', email: '', phone: contact, message: 'OTP verified - brochure download' });
       }
     } catch (_) {}
     // Provide brochure URL if exists
@@ -131,7 +139,7 @@ export class LeadsService {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const exists = await this.prisma.lead.findFirst({ where: { propertyId, type: 'brochure', ...(phone ? { phone } : {}), createdAt: { gte: since } } });
       if (!exists) {
-        await this.prisma.lead.create({ data: { propertyId, type: 'brochure', name: propertyName || 'Brochure Lead', email: '', phone: phone || '', message: 'Widget verified - brochure download' } });
+        await this.createLead({ propertyId, type: 'brochure', name: propertyName || 'Brochure Lead', email: '', phone: phone || '', message: 'Widget verified - brochure download' });
       }
     } catch (_) {}
     const match = b.match(/^gs:\/\/[^/]+\/(.+)$/);
@@ -148,11 +156,19 @@ export class LeadsService {
     if (type) where.type = type;
     if (status) where.status = status;
     const total = await this.prisma.lead.count({ where });
-    const data = await this.prisma.lead.findMany({ where, orderBy: { createdAt: 'desc' }, skip: (page - 1) * pageSize, take: pageSize });
+    const data = await this.prisma.lead.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: { property: { select: { id: true, name: true } } },
+    });
     return { data, meta: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) } };
   }
 
   async updateStatus(id: string, status: string) {
+    const exists = await this.prisma.lead.findUnique({ where: { id }, select: { id: true } });
+    if (!exists) throw new NotFoundException('Lead not found');
     return this.prisma.lead.update({ where: { id }, data: { status } });
   }
 
@@ -189,7 +205,7 @@ export class LeadsService {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const exists = await this.prisma.lead.findFirst({ where: { propertyId, phone: contact, type: 'brochure', createdAt: { gte: since } } });
       if (!exists) {
-        await this.prisma.lead.create({ data: { propertyId, type: 'brochure', name: 'Brochure Lead', email: '', phone: contact, message: 'External OTP verified - brochure download' } });
+        await this.createLead({ propertyId, type: 'brochure', name: 'Brochure Lead', email: '', phone: contact, message: 'External OTP verified - brochure download' });
       }
     } catch (_) {}
     const match = b.match(/^gs:\/\/[^/]+\/(.+)$/);

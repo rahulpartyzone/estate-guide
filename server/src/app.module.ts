@@ -19,11 +19,13 @@ import { FilesModule } from './files/files.module';
 import { AmenitiesModule } from './amenities/amenities.module';
 import { SiteContentModule } from './site-content/site-content.module';
 import { NewsModule } from './news/news.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    MailModule,
     AuthModule,
     PropertiesModule,
     BuildersModule,

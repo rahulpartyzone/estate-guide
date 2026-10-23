@@ -1,11 +1,14 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query, Res, UseGuards } from '@nestjs/common';
 import { LeadsService } from './leads.service';
 import { JwtCookieAuthGuard } from '../auth/jwt.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { LeadStatusUpdateDto } from './dtos';
 import { Response } from 'express';
 
 @Controller('admin/leads')
-@UseGuards(JwtCookieAuthGuard)
+@UseGuards(JwtCookieAuthGuard, PermissionsGuard)
+@RequirePermissions('leads.read')
 export class AdminLeadsController {
   constructor(private readonly svc: LeadsService) {}
 
@@ -15,6 +18,7 @@ export class AdminLeadsController {
   }
 
   @Patch(':id')
+  @RequirePermissions('leads.write')
   updateStatus(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @Body() dto: LeadStatusUpdateDto) {
     return this.svc.updateStatus(id, dto.status);
   }

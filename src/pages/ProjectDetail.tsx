@@ -17,11 +17,14 @@ import { toast } from "sonner";
 import { mapBackendProperty, formatINRShort } from '@/lib/propertyMapper';
 import { absolutizeApiUrl } from "@/lib/url";
 import type { Property } from '@/types/property';
+import { toggleSaved, useSavedIds } from '@/lib/saved';
 
 const ProjectDetail = () => {
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const savedIds = useSavedIds();
+  const isSaved = Boolean(id && savedIds.includes(id));
   const [property, setProperty] = useState<Property | undefined>(undefined);
   const [galleryApi, setGalleryApi] = useState<CarouselApi | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -34,6 +37,19 @@ const ProjectDetail = () => {
   const hasBrochure = !!property?.brochureUrl;
   const [amenityCatalog, setAmenityCatalog] = useState<any[]>([]);
   const [companyWhatsappNumber, setCompanyWhatsappNumber] = useState<string>("");
+
+  // Count one view per project per browser session (feeds the admin dashboard).
+  useEffect(() => {
+    if (!id) return;
+    const key = `eg.viewed.${id}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      /* storage blocked: still count */
+    }
+    api.recordPropertyView(id).catch(() => undefined);
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -233,8 +249,14 @@ const ProjectDetail = () => {
     }
   };
 
-  const handleWishlist = () => {
-    toast.success("Added to wishlist!");
+  const handleWishlist = async () => {
+    if (!id) return;
+    try {
+      const nowSaved = await toggleSaved(id);
+      toast.success(nowSaved ? "Saved. Find it under Saved in the menu." : "Removed from saved projects");
+    } catch {
+      toast.error("Couldn't update saved projects. Please try again.");
+    }
   };
 
   const handleWhatsAppChat = () => {
@@ -283,8 +305,10 @@ const ProjectDetail = () => {
             variant="secondary" 
             className="bg-white/90 hover:bg-white"
             onClick={handleWishlist}
+            aria-label={isSaved ? "Remove from saved projects" : "Save this project"}
+            aria-pressed={isSaved}
           >
-            <Heart className="h-4 w-4" />
+            <Heart className={`h-4 w-4 ${isSaved ? "fill-red-500 text-red-500" : ""}`} />
           </Button>
         </div>
 

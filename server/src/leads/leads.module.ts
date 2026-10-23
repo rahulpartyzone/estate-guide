@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { LeadsService } from './leads.service';
+import { LeadAlertsService } from './lead-alerts.service';
 import { PublicLeadsController } from './public.controller';
 import { PublicPreferenceLeadsController } from './public-preference.controller';
 import { AdminLeadsController } from './admin.controller';
@@ -10,7 +11,7 @@ import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [PrismaModule, StorageModule, Msg91Module, AuthModule],
-  providers: [LeadsService],
+  providers: [LeadsService, LeadAlertsService],
   controllers: [PublicLeadsController, PublicPreferenceLeadsController, AdminLeadsController],
   exports: [LeadsService],
 })

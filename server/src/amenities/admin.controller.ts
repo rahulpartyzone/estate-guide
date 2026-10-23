@@ -1,11 +1,17 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { AmenitiesService } from './amenities.service';
+import { JwtCookieAuthGuard } from '../auth/jwt.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 
 @Controller('admin/amenities')
+@UseGuards(JwtCookieAuthGuard, PermissionsGuard)
+@RequirePermissions('amenities.write')
 export class AmenitiesAdminController {
   constructor(private readonly svc: AmenitiesService) {}
 
   @Get()
+  @RequirePermissions('amenities.read')
   list() { return this.svc.listAdmin(); }
 
   @Post()

@@ -1,10 +1,13 @@
 import { Body, Controller, Delete, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { AgentsService } from './agents.service';
 import { JwtCookieAuthGuard } from '../auth/jwt.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { AgentCreateDto, AgentUpdateDto } from './dtos';
 
 @Controller('admin/agents')
-@UseGuards(JwtCookieAuthGuard)
+@UseGuards(JwtCookieAuthGuard, PermissionsGuard)
+@RequirePermissions('settings.write')
 export class AdminAgentsController {
   constructor(private readonly svc: AgentsService) {}
 

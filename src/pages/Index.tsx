@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import type { Property } from "@/types/property";
 import { mapBackendProperty } from "@/lib/propertyMapper";
 import LeadPreferenceForm from "@/components/LeadPreferenceForm";
+import Testimonials from "@/components/Testimonials";
 import { absolutizeApiUrl } from "@/lib/url";
 
 type LandingHeroContent = {
@@ -161,6 +162,7 @@ const Index = () => {
         stats={landingHeroContent.stats.length ? landingHeroContent.stats : undefined}
       />
       <FeaturedProjects />
+      <Testimonials />
       <section className="py-16 bg-muted/30 border-y">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl text-center space-y-6">
           <h2 className="text-3xl font-bold tracking-tight">Stay Updated</h2>

@@ -2,9 +2,12 @@ import { Body, Controller, Delete, Param, ParseUUIDPipe, Post, Put, UseGuards } 
 import { BuildersService } from './builders.service';
 import { BuilderCreateDto, BuilderUpdateDto } from './dtos';
 import { JwtCookieAuthGuard } from '../auth/jwt.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 
 @Controller('admin/builders')
-@UseGuards(JwtCookieAuthGuard)
+@UseGuards(JwtCookieAuthGuard, PermissionsGuard)
+@RequirePermissions('builders.write')
 export class AdminBuildersController {
   constructor(private readonly svc: BuildersService) {}
 

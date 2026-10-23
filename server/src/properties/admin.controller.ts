@@ -2,10 +2,13 @@ import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post, Put, UseGu
 import { PropertiesService } from './properties.service';
 import { PresignRequestDto, PropertyCreateDto, PropertyUpdateDto } from './dtos';
 import { JwtCookieAuthGuard } from '../auth/jwt.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { GcsService } from '../storage/gcs.service';
 
 @Controller('admin/properties')
-@UseGuards(JwtCookieAuthGuard)
+@UseGuards(JwtCookieAuthGuard, PermissionsGuard)
+@RequirePermissions('projects.write')
 export class AdminPropertiesController {
   constructor(private readonly svc: PropertiesService, private readonly gcs: GcsService) {}
 

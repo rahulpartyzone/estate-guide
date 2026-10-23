@@ -12,6 +12,7 @@ import News from "./pages/News";
 import Builders from "./pages/Builders";
 import BuilderDetail from "./pages/BuilderDetail";
 import AcceptInvite from "./pages/AcceptInvite";
+import Saved from "./pages/Saved";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/builders/:id" element={<BuilderDetail />} />
           <Route path="/news" element={<News />} />
           <Route path="/about" element={<About />} />
+          <Route path="/saved" element={<Saved />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/onboarding/accept-invite" element={<AcceptInvite />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

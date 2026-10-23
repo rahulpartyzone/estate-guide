@@ -104,9 +104,24 @@ export const api = {
   },
 
   // Testimonials
-  listTestimonials(published?: boolean) {
-    const q = published === undefined ? '' : `?published=${published}`;
-    return request<any[]>(`/testimonials${q}`);
+  // Saved projects (anonymous; see lib/saved.ts)
+  getWishlist(anonId: string) {
+    return request<{ propertyIds: string[] }>(`/wishlist`, { headers: { 'X-Anon-Id': anonId } });
+  },
+  addToWishlist(anonId: string, propertyId: string) {
+    return request<{ ok: boolean }>(`/wishlist`, { method: 'POST', body: JSON.stringify({ propertyId }), headers: { 'X-Anon-Id': anonId } });
+  },
+  removeFromWishlist(anonId: string, propertyId: string) {
+    return request<void>(`/wishlist/${propertyId}`, { method: 'DELETE', headers: { 'X-Anon-Id': anonId } });
+  },
+
+  // Public: published testimonials only
+  listTestimonials() {
+    return request<any[]>(`/testimonials`);
+  },
+  // Admin: all testimonials, drafts included
+  listTestimonialsAdmin() {
+    return request<any[]>(`/admin/testimonials`);
   },
   createTestimonial(payload: { name: string; role: string; company: string; content: string; rating: number; published?: boolean }) {
     return request<any>(`/admin/testimonials`, { method: 'POST', body: JSON.stringify(payload) });
@@ -266,6 +281,15 @@ export const api = {
     });
     const qs = search.toString();
     return request<{ data: any[]; meta: any }>(`/admin/leads${qs ? `?${qs}` : ''}`);
+  },
+  getAdminStats() {
+    return request<any>(`/admin/stats`);
+  },
+  recordPropertyView(id: string) {
+    return request<void>(`/properties/${id}/view`, { method: 'POST' });
+  },
+  updateLeadStatus(id: string, status: string) {
+    return request<any>(`/admin/leads/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
   },
   exportLeadsCsv(params: { type?: string; months?: number } = {}): Promise<Blob> {
     const search = new URLSearchParams();

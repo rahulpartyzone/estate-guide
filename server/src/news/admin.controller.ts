@@ -1,14 +1,18 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { JwtCookieAuthGuard } from '../auth/jwt.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { NewsPublishDto, NewsCreateDto, NewsUpdateDto } from './dtos';
 import { NewsService } from './news.service';
 
 @Controller('admin/news')
-@UseGuards(JwtCookieAuthGuard)
+@UseGuards(JwtCookieAuthGuard, PermissionsGuard)
+@RequirePermissions('news.write')
 export class AdminNewsController {
   constructor(private readonly svc: NewsService) {}
 
   @Get()
+  @RequirePermissions('news.read')
   list() {
     return this.svc.listAdmin();
   }

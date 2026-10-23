@@ -1,14 +1,19 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { JwtCookieAuthGuard } from '../auth/jwt.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { SiteContentService } from './site-content.service';
 import { ExecutiveCreateDto, ExecutiveUpdateDto, SiteProfileUpsertDto } from './dtos';
 
 @Controller('admin/site-profile')
-@UseGuards(JwtCookieAuthGuard)
+@UseGuards(JwtCookieAuthGuard, PermissionsGuard)
+// The Company and Settings admin screens both edit the site profile.
+@RequirePermissions('company.write|settings.write')
 export class SiteContentAdminController {
   constructor(private readonly svc: SiteContentService) {}
 
   @Get()
+  @RequirePermissions('company.read|settings.read')
   getProfile() {
     return this.svc.getAdminProfile();
   }
