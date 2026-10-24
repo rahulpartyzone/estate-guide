@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Home, Calendar, ArrowRight, Star } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowRight, Star } from "lucide-react";
+import PropertyCard from "@/components/PropertyCard";
 import { Link } from "react-router-dom";
 import { api } from '@/lib/api';
 import type { Property } from '@/types/property';
 import { mapBackendProperty } from '@/lib/propertyMapper';
-import { ProjectStatusLabels } from '@/constants/enums';
 
 const FeaturedProjects = () => {
   const [hotProjects, setHotProjects] = useState<Property[]>([]);
@@ -47,89 +47,23 @@ const FeaturedProjects = () => {
 
         {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
-          {loading && !hotProjects.length && (
-            <div className="col-span-full text-sm text-muted-foreground">Loading hot projects...</div>
-          )}
-          {hotProjects.map((project, index) => (
-            <Card 
-              key={project.id} 
-              className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden border-0 bg-card"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              {/* Project Image */}
-              <div className="relative overflow-hidden aspect-[4/3]">
-                <img
-                  src={project.mainImage}
-                  alt={project.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                
-                {/* Hot Badge */}
-                <div className="absolute top-4 left-4">
-                  <Badge className="bg-accent text-accent-foreground font-semibold">
-                    🔥 Hot Project
-                  </Badge>
-                </div>
-
-                {/* Status Badge */}
-                <div className="absolute top-4 right-4">
-                  <Badge variant="secondary" className="bg-white/90 text-foreground">
-                    {ProjectStatusLabels[project.status as keyof typeof ProjectStatusLabels] || project.status}
-                  </Badge>
+          {loading && !hotProjects.length &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                <Skeleton className="aspect-[4/3] w-full rounded-none" />
+                <div className="space-y-3 p-5">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-6 w-16" />
+                    <Skeleton className="h-6 w-24" />
+                  </div>
+                  <Skeleton className="h-10 w-full" />
                 </div>
               </div>
-
-              {/* Project Details */}
-              <div className="p-6">
-                <div className="mb-3">
-                  <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
-                    {project.name}
-                  </h3>
-                  <div className="flex items-center text-muted-foreground text-sm mb-2">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    {project.area}, {project.city}
-                  </div>
-                  <div className="flex items-center text-muted-foreground text-sm">
-                    <Home className="h-4 w-4 mr-1" />
-                    {project.propertyType}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {project.reraId && (
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">RERA No.</span>: {project.reraId}
-                    </p>
-                  )}
-                  {(project.priceRange || project.developmentSize || project.size || project.totalUnits) && (
-                    <div>
-                      {project.priceRange && <p className="text-2xl font-bold text-primary">{project.priceRange}</p>}
-                      {project.developmentSize && <p className="text-sm text-muted-foreground">Development Size: {project.developmentSize}</p>}
-                      {project.size && <p className="text-sm text-muted-foreground">Unit Size: {project.size}</p>}
-                      {project.totalUnits ? <p className="text-sm text-muted-foreground">Total Units: {project.totalUnits}</p> : null}
-                    </div>
-                  )}
-
-                  {project.completionDate && (
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      {project.completionDate}
-                    </div>
-                  )}
-
-                  <Link to={`/project/${project.id}`}>
-                    <Button 
-                      className="w-full group/btn bg-primary hover:bg-primary-hover"
-                      size="sm"
-                    >
-                      View Details
-                      <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover/btn:translate-x-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </Card>
+            ))}
+          {hotProjects.map((project) => (
+            <PropertyCard key={project.id} property={project} />
           ))}
         </div>
 

@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Home, Calendar, Download, Phone, Mail, Share, Heart, Bath, Bed, Ruler, MessageCircle, Scale } from "lucide-react";
+import { MapPin, Home, Calendar, Download, Phone, Mail, Share, Heart, Bath, Bed, Ruler, MessageCircle, Scale, Images } from "lucide-react";
+import PhotoLightbox from "@/components/PhotoLightbox";
 import MapView from "@/components/MapView";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -35,6 +36,7 @@ const ProjectDetail = () => {
   const compareIds = useCompareIds();
   const isComparing = Boolean(id && compareIds.includes(id));
   const isSaved = Boolean(id && savedIds.includes(id));
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [property, setProperty] = useState<Property | undefined>(undefined);
   usePageTitle(property?.name || null);
   const [galleryApi, setGalleryApi] = useState<CarouselApi | null>(null);
@@ -46,6 +48,8 @@ const ProjectDetail = () => {
   const [otpBusy, setOtpBusy] = useState(false);
   const [usingWidget, setUsingWidget] = useState(false);
   const hasBrochure = !!property?.brochureUrl;
+  // Main photo first, then the gallery, without repeats
+  const galleryPhotos = Array.from(new Set([property?.mainImage, ...(property?.images || [])].filter(Boolean) as string[]));
   const [amenityCatalog, setAmenityCatalog] = useState<any[]>([]);
   const [companyWhatsappNumber, setCompanyWhatsappNumber] = useState<string>("");
   const [companyPhone, setCompanyPhone] = useState<string>("");
@@ -305,12 +309,19 @@ const ProjectDetail = () => {
       {/* Hero Image Section */}
       {property && (
       <section className="relative h-[60vh] md:h-[70vh] overflow-hidden">
-        <img
-          src={property.mainImage}
-          alt={property.name}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <button
+          type="button"
+          className="block h-full w-full cursor-zoom-in"
+          onClick={() => setLightboxIndex(0)}
+          aria-label={`View photos of ${property.name}`}
+        >
+          <img
+            src={property.mainImage}
+            alt={property.name}
+            className="w-full h-full object-cover"
+          />
+        </button>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         
         {/* Floating Action Buttons */}
         <div className="absolute top-6 right-6 flex gap-3">
@@ -335,7 +346,7 @@ const ProjectDetail = () => {
         </div>
 
         {/* Property Info Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
           <div className="container mx-auto">
             <div className="max-w-4xl">
               <div className="flex flex-wrap gap-2 mb-4">
@@ -356,12 +367,22 @@ const ProjectDetail = () => {
                 <MapPin className="h-5 w-5 mr-2" />
                 {property.area}, {property.city}
               </div>
-              <p className="text-white/80 text-lg max-w-2xl">
+              <p className="text-white/80 text-base md:text-lg max-w-2xl line-clamp-2 md:line-clamp-3">
                 {property.description}
               </p>
             </div>
           </div>
         </div>
+
+        {galleryPhotos.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(0)}
+            className="absolute right-4 top-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-foreground shadow-md transition hover:bg-white md:bottom-6 md:right-6 md:top-auto"
+          >
+            <Images className="h-4 w-4" /> {galleryPhotos.length} photos
+          </button>
+        )}
   </section>
   )}
 
@@ -682,14 +703,19 @@ const ProjectDetail = () => {
                           <CarouselContent>
                             {property.images.map((image: string, index: number) => (
                               <CarouselItem key={index}>
-                                <div className="aspect-video bg-secondary rounded-lg overflow-hidden">
+                                <button
+                                  type="button"
+                                  className="block aspect-video w-full cursor-zoom-in overflow-hidden rounded-lg bg-secondary"
+                                  onClick={() => setLightboxIndex(Math.max(0, galleryPhotos.indexOf(image)))}
+                                  aria-label={`Open photo ${index + 1} full screen`}
+                                >
                                   <img
                                     src={image}
                                     alt={`${property.name} - ${index + 1}`}
                                     className="w-full h-full object-cover"
                                     loading={index === 0 ? "eager" : "lazy"}
                                   />
-                                </div>
+                                </button>
                               </CarouselItem>
                             ))}
                           </CarouselContent>
@@ -697,7 +723,7 @@ const ProjectDetail = () => {
                           <CarouselNext className="-right-3 md:-right-6" aria-label="Next image" />
                         </Carousel>
                         <div className="mt-3 text-center text-xs text-muted-foreground">
-                          Use arrows or swipe to browse images
+                          Swipe or use the arrows to browse. Tap a photo to see it full screen.
                         </div>
                       </div>
                     ) : (
@@ -879,6 +905,16 @@ const ProjectDetail = () => {
             )}
           </div>
         </div>
+      )}
+
+      {property && (
+        <PhotoLightbox
+          images={galleryPhotos}
+          title={property.name}
+          open={lightboxIndex !== null}
+          startIndex={lightboxIndex ?? 0}
+          onOpenChange={(open) => !open && setLightboxIndex(null)}
+        />
       )}
 
       {/* Brochure OTP Dialog */}
