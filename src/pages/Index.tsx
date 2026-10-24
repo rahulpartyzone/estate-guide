@@ -9,6 +9,7 @@ import FeaturedProjects from "@/components/FeaturedProjects";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import BrowseByArea from "@/components/home/BrowseByArea";
+import type { Suggestion } from "@/components/SearchSuggest";
 import WhyUs from "@/components/home/WhyUs";
 import BuilderStrip from "@/components/home/BuilderStrip";
 import type { Property } from "@/types/property";
@@ -101,6 +102,14 @@ const Index = () => {
     };
   }, []);
 
+  /** A suggestion opens the matching projects (or the project itself). */
+  const openSuggestion = (s: Suggestion) => {
+    if (s.kind === "project") navigate(`/project/${s.id}`);
+    else if (s.kind === "city") navigate(`/projects?city=${encodeURIComponent(s.value)}`);
+    else if (s.kind === "builder") navigate(`/projects?builder=${encodeURIComponent(s.value)}`);
+    else navigate(`/projects?q=${encodeURIComponent(s.value)}${s.city ? `&city=${encodeURIComponent(s.city)}` : ""}`);
+  };
+
   /** The banner search opens the projects page with the search filled in. */
   const handleSearchSubmit = () => {
     const q = searchTerm.trim();
@@ -137,6 +146,8 @@ const Index = () => {
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         onSearchSubmit={handleSearchSubmit}
+        properties={properties}
+        onSuggestionSelect={openSuggestion}
         heroImageUrl={landingHeroContent.imageUrl || undefined}
         titlePrefix={landingHeroContent.titlePrefix || undefined}
         titleHighlight={landingHeroContent.titleHighlight || undefined}

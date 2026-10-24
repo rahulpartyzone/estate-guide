@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Search, MapPin } from "lucide-react";
+import { Search } from "lucide-react";
+import SearchSuggest, { type Suggestion } from "@/components/SearchSuggest";
+import type { Property } from "@/types/property";
 import heroBuilding from "@/assets/hero-building.jpg";
 import { FormEvent } from "react";
 
@@ -7,6 +9,9 @@ type HeroProps = {
   searchTerm: string;
   onSearchTermChange: (value: string) => void;
   onSearchSubmit: () => void;
+  /** Listed projects, for suggestions as the visitor types */
+  properties?: Property[];
+  onSuggestionSelect?: (s: Suggestion) => void;
   isSearching?: boolean;
   heroImageUrl?: string;
   titlePrefix?: string;
@@ -19,6 +24,8 @@ const Hero = ({
   searchTerm,
   onSearchTermChange,
   onSearchSubmit,
+  properties = [],
+  onSuggestionSelect,
   isSearching,
   heroImageUrl,
   titlePrefix,
@@ -41,10 +48,10 @@ const Hero = ({
   };
 
   return (
-    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden py-12 md:py-0">
+    <section className="relative min-h-[80vh] flex items-center justify-center py-12 md:py-0">
       {/* Background Image */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 overflow-hidden bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${heroImageUrl || heroBuilding})` }}
       >
         <div className="absolute inset-0 bg-gradient-hero opacity-80" />
@@ -67,14 +74,16 @@ const Hero = ({
           <div className="max-w-2xl mx-auto mb-8">
             <form onSubmit={handleSubmit} className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
               <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 flex items-center space-x-3 bg-white/90 rounded-xl px-4 py-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground" />
-                  <input
-                    type="text"
+                <div className="flex-1">
+                  <SearchSuggest
+                    icon="pin"
                     value={searchTerm}
-                    onChange={(event) => onSearchTermChange(event.target.value)}
-                    placeholder="Enter location, city, or area..."
-                    className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+                    onChange={onSearchTermChange}
+                    onSubmit={onSearchSubmit}
+                    onSelect={(s) => onSuggestionSelect?.(s)}
+                    properties={properties}
+                    placeholder="Area, city, project or builder"
+                    inputClassName="h-12 rounded-xl border-0 bg-white/95 pr-4 text-base text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
                 <Button 

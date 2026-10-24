@@ -11,7 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Filter, SlidersHorizontal, Building2, MapPin, BedDouble, Home, X } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useEffect, useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import SearchSuggest, { type Suggestion } from "@/components/SearchSuggest";
 import { api } from "@/lib/api";
 import { Property } from "@/types/property";
 import { mapBackendProperty } from '@/lib/propertyMapper';
@@ -37,6 +38,22 @@ const Projects = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const navigate = useNavigate();
+
+  /** Picking a suggestion sets the matching filter rather than leaving the text in the search box. */
+  const applySuggestion = (s: Suggestion) => {
+    if (s.kind === "project") return navigate(`/project/${s.id}`);
+    if (s.kind === "city") {
+      setSelectedCity(s.value);
+      setSearchQuery("");
+    } else if (s.kind === "builder") {
+      setSelectedBuilder(s.value);
+      setSearchQuery("");
+    } else {
+      setSearchQuery(s.value);
+      if (s.city) setSelectedCity(s.city);
+    }
+  };
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -281,9 +298,12 @@ const Projects = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <section className="relative border-b overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center md:bg-fixed scale-105" style={{ backgroundImage: `url(${heroBackgroundUrl})` }} />
-        <div className={`absolute inset-0 ${hasCustomHeroImage ? 'bg-black/50' : 'bg-black/55'}`} />
+      <section className="relative border-b">
+        {/* Only the photo is clipped, so the search suggestions can drop below the banner */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 bg-cover bg-center md:bg-fixed scale-105" style={{ backgroundImage: `url(${heroBackgroundUrl})` }} />
+          <div className={`absolute inset-0 ${hasCustomHeroImage ? 'bg-black/50' : 'bg-black/55'}`} />
+        </div>
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-8 md:pt-16 pb-8 md:pb-14">
           <div className="text-center mb-5 md:mb-8">
@@ -295,14 +315,14 @@ const Projects = () => {
 
           <div className="rounded-2xl p-3 md:p-6 space-y-4 border border-white/30 bg-background/25 backdrop-blur-md shadow-2xl">
             <div className="flex gap-2 md:grid md:grid-cols-2 xl:grid-cols-7 md:gap-4">
-              <div className="relative flex-1 md:col-span-2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search project, area or city"
+              <div className="relative z-20 flex-1 md:col-span-2">
+                <SearchSuggest
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-12 bg-background/95"
+                  onChange={setSearchQuery}
+                  onSelect={applySuggestion}
+                  properties={properties}
+                  placeholder="Area, city, project or builder"
+                  inputClassName="h-12 rounded-md border border-input bg-background/95 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
 
