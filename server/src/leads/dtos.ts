@@ -1,4 +1,4 @@
-import { IsDateString, IsEmail, IsIn, IsInt, IsObject, IsUUID, Matches, MaxLength, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsEmail, IsIn, IsInt, IsObject, IsUUID, Matches, MaxLength, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, Max, Min, ValidateIf } from 'class-validator';
 
 /** Campaign info captured on the visitor's first visit (utm_*, gclid, referrer...). Sanitised in attribution.ts. */
 class WithAttribution {
@@ -97,16 +97,20 @@ export class LeadPreferenceDto extends WithAttribution {
   @IsNotEmpty()
   name!: string;
 
-  @IsEmail()
-  email!: string;
+  // Optional since the two-step form: a phone number is enough for the team to call back.
+  @IsOptional()
+  @ValidateIf((o) => typeof o.email === 'string' && o.email.trim() !== '')
+  @IsEmail({}, { message: 'Enter a valid email address' })
+  email?: string;
 
   @IsString()
-  @IsNotEmpty()
+  @Matches(/^\+?[0-9\s-]{10,16}$/, { message: 'Enter a valid phone number' })
   phone!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  homeLoanAssistance!: 'yes' | 'no';
+  // Optional: "not sure" is a fine answer
+  @IsOptional()
+  @IsIn(['yes', 'no', ''])
+  homeLoanAssistance?: 'yes' | 'no' | '';
 
   @IsOptional()
   @IsString()

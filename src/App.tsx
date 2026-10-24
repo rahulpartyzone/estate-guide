@@ -19,6 +19,7 @@ import Compare from "./pages/Compare";
 import Unsubscribe from "./pages/Unsubscribe";
 import BuyerLoginDialog from "./components/BuyerLoginDialog";
 import SiteFooter from "./components/SiteFooter";
+import WhatsAppButton from "./components/WhatsAppButton";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
         <SiteFooter />
+        <WhatsAppButton />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

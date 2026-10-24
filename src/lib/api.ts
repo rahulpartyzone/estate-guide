@@ -229,9 +229,9 @@ export const api = {
     preferredBudgetRange: string;
     preferredLocation: string;
     name: string;
-    email: string;
+    email?: string;
     phone: string;
-    homeLoanAssistance: 'yes' | 'no';
+    homeLoanAssistance?: 'yes' | 'no';
     sourcePage?: string;
   }) {
     return tracked('preference', request<any>(`/leads/preference`, { method: 'POST', body: JSON.stringify(withAttribution(payload)) }));

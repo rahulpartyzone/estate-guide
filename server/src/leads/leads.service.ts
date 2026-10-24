@@ -50,12 +50,12 @@ export class LeadsService {
     return this.createLead({
       type: 'preference',
       name: dto.name,
-      email: dto.email,
+      email: dto.email?.trim() || '',
       phone: dto.phone,
       preferredPropertyType: dto.preferredPropertyType,
       preferredBudgetRange: dto.preferredBudgetRange,
       preferredLocation: dto.preferredLocation,
-      needsHomeLoanAssistance: dto.homeLoanAssistance === 'yes',
+      needsHomeLoanAssistance: dto.homeLoanAssistance ? dto.homeLoanAssistance === 'yes' : null,
       sourcePage: dto.sourcePage || null,
       message: `Preference lead from ${dto.sourcePage || 'site'}`,
     }, dto.attribution);

@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Filter, SlidersHorizontal, Building2, MapPin, BedDouble, Home, X } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { Property } from "@/types/property";
 import { mapBackendProperty } from '@/lib/propertyMapper';
@@ -25,11 +26,13 @@ const Projects = () => {
   const absolutize = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
 
   const [projectsHeaderImageUrl, setProjectsHeaderImageUrl] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCity, setSelectedCity] = useState("all");
-  const [selectedType, setSelectedType] = useState("all");
-  const [selectedBuilder, setSelectedBuilder] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
+  // Links from the home page (search, city tiles, type chips) arrive as ?q=, ?city=, ?type=, ?status=, ?builder=
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") || "");
+  const [selectedCity, setSelectedCity] = useState(() => searchParams.get("city") || "all");
+  const [selectedType, setSelectedType] = useState(() => searchParams.get("type") || "all");
+  const [selectedBuilder, setSelectedBuilder] = useState(() => searchParams.get("builder") || "all");
+  const [selectedStatus, setSelectedStatus] = useState(() => searchParams.get("status") || "all");
   const [selectedBedrooms, setSelectedBedrooms] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
@@ -109,7 +112,8 @@ const Projects = () => {
   const filteredProperties = properties.filter((property) => {
     const matchesSearch = property.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          property.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         property.city.toLowerCase().includes(searchQuery.toLowerCase());
+                         property.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (property.builder || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesCity = selectedCity === "all" || property.city === selectedCity;
     const matchesType = selectedType === "all" || property.propertyType === selectedType;
