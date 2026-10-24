@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useCompareIds } from "@/lib/compare";
+import { whatsappDigits } from "@/lib/whatsapp";
 
 /** WhatsApp logo (lucide has no brand icons for it) */
 const WhatsAppIcon = ({ className = "" }: { className?: string }) => (
@@ -10,7 +11,7 @@ const WhatsAppIcon = ({ className = "" }: { className?: string }) => (
   </svg>
 );
 
-/** Floating "Chat on WhatsApp" button on public pages, using the number in Admin -> Company. */
+/** Floating "Chat on WhatsApp" button on public pages (WhatsApp number from Admin -> Company, else the phone number). */
 const WhatsAppButton = () => {
   const { pathname } = useLocation();
   const comparing = useCompareIds().length > 0;
@@ -19,7 +20,7 @@ const WhatsAppButton = () => {
   useEffect(() => {
     api
       .getSiteProfile()
-      .then((p) => setNumber(String(p?.whatsappNumber || "").replace(/\D/g, "")))
+      .then((p) => setNumber(whatsappDigits(p)))
       .catch(() => setNumber(""));
   }, []);
 

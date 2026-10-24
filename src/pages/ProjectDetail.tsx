@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Home, Calendar, Download, Phone, Mail, Share, Heart, Bath, Bed, Ruler, MessageCircle, Scale, Images } from "lucide-react";
 import PhotoLightbox from "@/components/PhotoLightbox";
+import { whatsappDigits } from "@/lib/whatsapp";
 import MapView from "@/components/MapView";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -286,7 +287,8 @@ const ProjectDetail = () => {
   };
 
   const handleWhatsAppChat = () => {
-    const digits = (companyWhatsappNumber || property?.builderPhone || '').replace(/\D/g, '');
+    // Your WhatsApp number, else your phone number; the builder's phone only if neither is set
+    const digits = whatsappDigits({ whatsappNumber: companyWhatsappNumber, phone: companyPhone }) || (property?.builderPhone || '').replace(/\D/g, '');
     if (!digits) {
       toast.error('WhatsApp contact is not configured');
       return;

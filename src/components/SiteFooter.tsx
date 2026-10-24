@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Building2, Facebook, Instagram, Linkedin, Mail, MapPin, MessageCircle, Phone, Star } from "lucide-react";
 import { api } from "@/lib/api";
 import { absolutizeApiUrl } from "@/lib/url";
+import { whatsappDigits } from "@/lib/whatsapp";
 
 interface Profile {
   companyName?: string;
@@ -48,7 +49,7 @@ const SiteFooter = () => {
   const rawApiBase = (import.meta as any).env?.VITE_API_BASE || "http://localhost:8080/api/v1";
   const logo = absolutizeApiUrl(profile?.headerLogoUrl || profile?.logoUrl || "", rawApiBase);
   const phoneHref = profile?.phone ? `tel:${profile.phone.replace(/[^\d+]/g, "")}` : "";
-  const waDigits = (profile?.whatsappNumber || "").replace(/\D/g, "");
+  const waDigits = whatsappDigits(profile);
   const socials = [
     { href: profile?.facebookUrl, label: "Facebook", Icon: Facebook },
     { href: profile?.instagramUrl, label: "Instagram", Icon: Instagram },
