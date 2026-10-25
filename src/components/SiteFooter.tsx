@@ -4,6 +4,7 @@ import { Building2, Facebook, Instagram, Linkedin, Mail, MapPin, MessageCircle, 
 import { api } from "@/lib/api";
 import { absolutizeApiUrl } from "@/lib/url";
 import { whatsappDigits } from "@/lib/whatsapp";
+import { Txt, useText } from "@/content/siteText";
 
 interface Profile {
   companyName?: string;
@@ -23,17 +24,18 @@ interface Profile {
 }
 
 const explore = [
-  { name: "All projects", href: "/projects" },
-  { name: "Builders", href: "/builders" },
-  { name: "News", href: "/news" },
-  { name: "About us", href: "/about" },
-  { name: "Saved projects", href: "/saved" },
-  { name: "Compare projects", href: "/compare" },
+  { key: "shared.footer.linkProjects", href: "/projects" },
+  { key: "shared.footer.linkBuilders", href: "/builders" },
+  { key: "shared.footer.linkNews", href: "/news" },
+  { key: "shared.footer.linkAbout", href: "/about" },
+  { key: "shared.footer.linkSaved", href: "/saved" },
+  { key: "shared.footer.linkCompare", href: "/compare" },
 ];
 
 /** Footer on every public page: who we are, how to reach us, and quick links. */
 const SiteFooter = () => {
   const { pathname } = useLocation();
+  const { t, show } = useText();
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
@@ -80,7 +82,7 @@ const SiteFooter = () => {
           )}
           {profile?.reraNumber && (
             <p className="text-xs text-slate-400">
-              RERA registration: <span className="font-medium text-slate-200">{profile.reraNumber}</span>
+              {t("shared.footer.rera")} <span className="font-medium text-slate-200">{profile.reraNumber}</span>
             </p>
           )}
           {socials.length > 0 && (
@@ -102,12 +104,12 @@ const SiteFooter = () => {
         </div>
 
         <div>
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">Explore</h3>
+          <Txt k="shared.footer.exploreTitle" as="h3" className="mb-4 text-sm font-semibold uppercase tracking-wider text-white" />
           <ul className="space-y-2 text-sm">
-            {explore.map((l) => (
+            {explore.filter((l) => show(l.key)).map((l) => (
               <li key={l.href}>
                 <Link to={l.href} className="transition-colors hover:text-white">
-                  {l.name}
+                  {t(l.key)}
                 </Link>
               </li>
             ))}
@@ -115,7 +117,7 @@ const SiteFooter = () => {
         </div>
 
         <div>
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">Talk to us</h3>
+          <Txt k="shared.footer.contactTitle" as="h3" className="mb-4 text-sm font-semibold uppercase tracking-wider text-white" />
           <ul className="space-y-3 text-sm">
             {profile?.phone && (
               <li>
@@ -124,15 +126,15 @@ const SiteFooter = () => {
                 </a>
               </li>
             )}
-            {waDigits && (
+            {waDigits && show("shared.footer.whatsapp") && (
               <li>
                 <a
-                  href={`https://wa.me/${waDigits}?text=${encodeURIComponent("Hi, I'd like help finding a home.")}`}
+                  href={`https://wa.me/${waDigits}?text=${encodeURIComponent(t("shared.footer.whatsappMessage"))}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-start gap-2 transition-colors hover:text-white"
                 >
-                  <MessageCircle className="mt-0.5 h-4 w-4 shrink-0" /> WhatsApp us
+                  <MessageCircle className="mt-0.5 h-4 w-4 shrink-0" /> {t("shared.footer.whatsapp")}
                 </a>
               </li>
             )}
@@ -153,10 +155,8 @@ const SiteFooter = () => {
       </div>
       <div className="border-t border-slate-800">
         <div className="container mx-auto flex flex-col gap-2 px-4 py-5 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <span>
-            © {new Date().getFullYear()} {name}. All rights reserved.
-          </span>
-          <span>Prices and availability are indicative and set by the builders. Please confirm before booking.</span>
+          <Txt k="shared.footer.copyright" vars={{ year: new Date().getFullYear(), company: name }} />
+          <Txt k="shared.footer.disclaimer" />
         </div>
       </div>
     </footer>

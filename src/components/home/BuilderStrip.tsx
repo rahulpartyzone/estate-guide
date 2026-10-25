@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { absolutizeApiUrl } from "@/lib/url";
+import SectionHeading from "@/components/public/SectionHeading";
+import { useText } from "@/content/siteText";
 
 interface BuilderLite {
   id: string;
@@ -13,6 +15,7 @@ interface BuilderLite {
 /** "Builders we work with": logos linking to each builder's page. */
 const BuilderStrip = () => {
   const [builders, setBuilders] = useState<BuilderLite[]>([]);
+  const { t, show } = useText();
 
   useEffect(() => {
     const rawApiBase = (import.meta as any).env?.VITE_API_BASE || "http://localhost:8080/api/v1";
@@ -34,15 +37,18 @@ const BuilderStrip = () => {
   return (
     <section className="py-14 md:py-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex items-end justify-between gap-4">
-          <div>
-            <p className="mb-2 text-sm font-semibold uppercase tracking-wider text-accent">Our partners</p>
-            <h2 className="text-2xl font-bold text-foreground md:text-3xl">Builders we work with</h2>
-          </div>
-          <Link to="/builders" className="hidden shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline sm:inline-flex">
-            All builders <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+        <SectionHeading
+          align="left"
+          eyebrow={t("home.builders.eyebrow")}
+          title={t("home.builders.title")}
+          action={
+            show("home.builders.all") && (
+              <Link to="/builders" className="hidden shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline sm:inline-flex">
+                {t("home.builders.all")} <ArrowRight className="h-4 w-4" />
+              </Link>
+            )
+          }
+        />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-6">
           {builders.map((b) => (
             <Link
@@ -64,9 +70,11 @@ const BuilderStrip = () => {
             </Link>
           ))}
         </div>
-        <Link to="/builders" className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-primary sm:hidden">
-          All builders <ArrowRight className="h-4 w-4" />
-        </Link>
+        {show("home.builders.all") && (
+          <Link to="/builders" className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-primary sm:hidden">
+            {t("home.builders.all")} <ArrowRight className="h-4 w-4" />
+          </Link>
+        )}
       </div>
     </section>
   );

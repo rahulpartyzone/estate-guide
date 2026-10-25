@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import SectionHeading from "@/components/public/SectionHeading";
+import { shown, text, useText } from "@/content/siteText";
 import { BadgeCheck, FileText, Quote, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -30,6 +32,7 @@ const initials = (name: string) =>
 
 /** Published testimonials from the admin. Renders nothing until at least one is published. */
 const Testimonials = ({ className = "" }: { className?: string }) => {
+  useText();
   const [items, setItems] = useState<Testimonial[]>([]);
   const [viewing, setViewing] = useState<Testimonial | null>(null);
 
@@ -51,10 +54,7 @@ const Testimonials = ({ className = "" }: { className?: string }) => {
   return (
     <section className={`py-16 bg-background ${className}`}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2">What Our Clients Say</h2>
-          <p className="text-muted-foreground">Families and investors who found their home with us</p>
-        </div>
+        <SectionHeading title={text("shared.testimonials.title")} subtitle={text("shared.testimonials.subtitle")} />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {items.map((t) => {
             const rating = Math.max(0, Math.min(5, Math.round(t.rating || 0)));
@@ -75,7 +75,7 @@ const Testimonials = ({ className = "" }: { className?: string }) => {
                         className="flex items-center gap-2 text-sm text-primary hover:underline"
                       >
                         <FileText className="h-4 w-4" aria-hidden="true" />
-                        View original letter (PDF)
+                        {text("shared.testimonials.viewLetter")}
                       </a>
                     ) : (
                       <button
@@ -85,11 +85,11 @@ const Testimonials = ({ className = "" }: { className?: string }) => {
                       >
                         <img
                           src={fileUrl(t.attachmentUrl)}
-                          alt={`Note from ${t.name}`}
+                          alt={text("shared.testimonials.noteFrom", { name: t.name })}
                           loading="lazy"
                           className="h-16 w-12 rounded border object-cover shadow-sm"
                         />
-                        <span className="group-hover:underline">View original note</span>
+                        <span className="group-hover:underline">{text("shared.testimonials.viewNote")}</span>
                       </button>
                     ))}
 
@@ -116,10 +116,10 @@ const Testimonials = ({ className = "" }: { className?: string }) => {
                     <div className="min-w-0">
                       <div className="font-semibold text-foreground flex items-center gap-1.5">
                         <span className="truncate">{t.name}</span>
-                        {t.attachmentUrl && (
+                        {t.attachmentUrl && shown("shared.testimonials.verified") && (
                           <span className="inline-flex items-center gap-0.5 text-xs font-medium text-primary whitespace-nowrap">
                             <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                            Verified client
+                            {text("shared.testimonials.verified")}
                           </span>
                         )}
                       </div>
@@ -135,11 +135,11 @@ const Testimonials = ({ className = "" }: { className?: string }) => {
 
       <Dialog open={Boolean(viewing)} onOpenChange={(open) => !open && setViewing(null)}>
         <DialogContent className="max-w-3xl">
-          <DialogTitle>Note from {viewing?.name}</DialogTitle>
+          <DialogTitle>{text("shared.testimonials.noteFrom", { name: viewing?.name })}</DialogTitle>
           {viewing?.attachmentUrl && (
             <img
               src={fileUrl(viewing.attachmentUrl)}
-              alt={`Note from ${viewing.name}`}
+              alt={text("shared.testimonials.noteFrom", { name: viewing.name })}
               className="w-full max-h-[75vh] object-contain rounded"
             />
           )}

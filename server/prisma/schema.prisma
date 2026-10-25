@@ -400,6 +400,15 @@ model BrochureOtp {
   @@index([ip, createdAt])
 }
 
+/// Admin edits to a label on the public site (Admin -> Settings -> Site text). The default wording lives
+/// in the website code; a row here only exists when an admin changed or hid that label.
+model SiteText {
+  key       String   @id
+  value     String?
+  hidden    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
 /// A home buyer who signed in with their phone number (OTP), so saved projects follow them to any device.
 model Buyer {
   id          String    @id @default(uuid())

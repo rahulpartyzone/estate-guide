@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState } from "react";
 import { Building, Building2, MapPin, Map as MapIcon, Search } from "lucide-react";
 import type { Property } from "@/types/property";
+import { text, useText } from "@/content/siteText";
 
 export type Suggestion =
   | { kind: "area"; value: string; city: string; count: number }
@@ -69,17 +70,17 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 const ICONS = { city: MapIcon, area: MapPin, project: Building, builder: Building2 };
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const projects = (n: number) => (n === 1 ? text("shared.search.countOne") : text("shared.search.countMany", { count: n }));
 function detail(s: Suggestion) {
   switch (s.kind) {
     case "city":
-      return `City · ${plural(s.count, "project")}`;
+      return `${text("shared.search.city")} · ${projects(s.count)}`;
     case "area":
-      return `Area${s.city ? ` in ${s.city}` : ""} · ${plural(s.count, "project")}`;
+      return `${text("shared.search.area", { city: s.city }).replace(/\s+in\s*$/, "")} · ${projects(s.count)}`;
     case "project":
-      return `Project${s.place ? ` · ${s.place}` : ""}`;
+      return `${text("shared.search.project")}${s.place ? ` · ${s.place}` : ""}`;
     case "builder":
-      return `Builder · ${plural(s.count, "project")}`;
+      return `${text("shared.search.builder")} · ${projects(s.count)}`;
   }
 }
 
@@ -98,6 +99,7 @@ interface Props {
 
 /** Search box that suggests areas, cities, projects and builders from the listed projects as you type. */
 const SearchSuggest = ({ value, onChange, onSelect, onSubmit, properties, placeholder, inputClassName = "", icon = "search" }: Props) => {
+  useText();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const listId = useId();
@@ -161,7 +163,7 @@ const SearchSuggest = ({ value, onChange, onSelect, onSubmit, properties, placeh
         aria-activedescendant={show && active >= 0 ? `${listId}-${active}` : undefined}
         autoComplete="off"
         value={value}
-        placeholder={placeholder}
+        placeholder={placeholder || text("shared.search.placeholder")}
         onChange={(e) => {
           onChange(e.target.value);
           setOpen(true);

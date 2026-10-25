@@ -164,6 +164,13 @@ export const api = {
     return request<void>(`/wishlist/${propertyId}`, { method: 'DELETE', headers: { 'X-Anon-Id': anonId } });
   },
 
+  // Site text: labels edited in Admin -> Settings -> Site text
+  getSiteText() { return request<Record<string, { value?: string; hidden?: boolean }>>(`/site-text`); },
+  getAdminSiteText() { return request<Record<string, { value?: string; hidden?: boolean }>>(`/admin/site-text`); },
+  saveSiteText(items: { key: string; value: string | null; hidden: boolean }[]) {
+    return request<Record<string, { value?: string; hidden?: boolean }>>(`/admin/site-text`, { method: 'PUT', body: JSON.stringify({ items }) });
+  },
+
   // Buyer accounts (phone OTP sign-in; the session is an httpOnly cookie)
   buyerMe() { return request<{ buyer: Buyer | null }>(`/buyer/me`); },
   buyerWidgetLogin(anonId: string, payload: { accessToken: string; phone: string; name?: string }) {

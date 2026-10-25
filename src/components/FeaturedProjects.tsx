@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, Star } from "lucide-react";
 import PropertyCard from "@/components/PropertyCard";
+import { Txt, useText } from "@/content/siteText";
 import { Link } from "react-router-dom";
 import { api } from '@/lib/api';
 import type { Property } from '@/types/property';
@@ -12,6 +13,7 @@ import { mapBackendProperty } from '@/lib/propertyMapper';
 const FeaturedProjects = () => {
   const [hotProjects, setHotProjects] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);
+  const { t, show } = useText();
 
   useEffect(() => {
     (async () => {
@@ -30,19 +32,17 @@ const FeaturedProjects = () => {
     <section className="py-16 bg-gradient-subtle">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Star className="h-6 w-6 text-accent" fill="currentColor" />
-            <Badge variant="secondary" className="text-sm font-medium">
-              Hot Projects
-            </Badge>
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Featured Premium Projects
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Discover our handpicked selection of exceptional properties with exclusive amenities and prime locations
-          </p>
+        <div className="mb-12 text-center">
+          {show("home.featured.badge") && (
+            <div className="mb-4 flex items-center justify-center gap-2">
+              <Star className="h-6 w-6 text-accent" fill="currentColor" />
+              <Badge variant="secondary" className="text-sm font-medium">
+                {t("home.featured.badge")}
+              </Badge>
+            </div>
+          )}
+          <Txt k="home.featured.title" as="h2" className="mb-4 text-3xl font-bold text-foreground md:text-4xl" />
+          <Txt k="home.featured.subtitle" as="p" className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl" />
         </div>
 
         {/* Projects Grid */}
@@ -68,14 +68,16 @@ const FeaturedProjects = () => {
         </div>
 
         {/* View All Button */}
+        {show("home.featured.viewAll") && (
         <div className="text-center">
           <Link to="/projects">
             <Button size="lg" variant="outline" className="group">
-              View All Projects
+              {t("home.featured.viewAll")}
               <ArrowRight className="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
         </div>
+        )}
       </div>
     </section>
   );

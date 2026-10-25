@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Txt, useText } from "@/content/siteText";
 import { usePageTitle } from "@/lib/pageTitle";
 import { useParams } from "react-router-dom";
 import Header from "@/components/Header";
@@ -41,6 +42,7 @@ const BuilderDetail = () => {
   const [builder, setBuilder] = useState<BuilderDetailData | null>(null);
   usePageTitle(builder?.name || null);
   const [loading, setLoading] = useState(true);
+  const { t } = useText();
 
   useEffect(() => {
     if (!id) return;
@@ -76,9 +78,9 @@ const BuilderDetail = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-        {loading && <p className="text-sm text-muted-foreground">Loading builder details...</p>}
+        {loading && <p className="text-sm text-muted-foreground">{t("builders.detail.loading")}</p>}
 
-        {!loading && !builder && <p className="text-sm text-muted-foreground">Builder not found.</p>}
+        {!loading && !builder && <p className="text-sm text-muted-foreground">{t("builders.detail.notFound")}</p>}
 
         {!loading && builder && (
           <>
@@ -91,8 +93,8 @@ const BuilderDetail = () => {
                     <h1 className="text-3xl font-bold">{builder.name}</h1>
                     {builder.description && <p className="text-sm text-muted-foreground leading-6">{builder.description}</p>}
                     <div className="text-sm text-muted-foreground flex flex-wrap gap-x-5 gap-y-2">
-                      {typeof builder.experienceYears === "number" && <span className="inline-flex items-center gap-2"><BriefcaseBusiness className="h-4 w-4" /> {builder.experienceYears} years experience</span>}
-                      {typeof builder.rating === "number" && <span className="inline-flex items-center gap-2"><Star className="h-4 w-4" /> {builder.rating}/5 rating</span>}
+                      {typeof builder.experienceYears === "number" && <Txt k="builders.detail.experience" vars={{ years: builder.experienceYears }} className="inline-flex items-center gap-2" before={<BriefcaseBusiness className="h-4 w-4" />} />}
+                      {typeof builder.rating === "number" && <Txt k="builders.detail.rating" vars={{ rating: builder.rating }} className="inline-flex items-center gap-2" before={<Star className="h-4 w-4" />} />}
                       {builder.phone && <span className="inline-flex items-center gap-2"><Phone className="h-4 w-4" /> {builder.phone}</span>}
                       {builder.email && <span className="inline-flex items-center gap-2"><Mail className="h-4 w-4" /> {builder.email}</span>}
                       {builder.website && (
@@ -107,7 +109,7 @@ const BuilderDetail = () => {
             </Card>
 
             <section className="space-y-6">
-              <h2 className="text-2xl font-semibold">Projects by Property Type</h2>
+              <Txt k="builders.detail.projectsTitle" as="h2" className="text-2xl font-semibold" />
               {grouped.map(([type, properties]) => (
                 <div key={type} className="space-y-3">
                   <h3 className="text-xl font-medium">{type}</h3>
@@ -118,7 +120,7 @@ const BuilderDetail = () => {
                   </div>
                 </div>
               ))}
-              {!grouped.length && <p className="text-sm text-muted-foreground">No properties listed for this builder.</p>}
+              {!grouped.length && <p className="text-sm text-muted-foreground">{t("builders.detail.noProjects")}</p>}
             </section>
           </>
         )}

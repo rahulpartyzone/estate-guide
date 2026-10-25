@@ -1,9 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { MapPin, ArrowRight, BedDouble, Ruler, CalendarClock, Heart, Scale, BadgeCheck, Flame } from "lucide-react";
-import { toast } from "sonner";
 import { toggleCompare, useCompareIds } from "@/lib/compare";
-import { toggleSaved, useSavedIds } from "@/lib/saved";
-import { openBuyerLogin, useBuyer } from "@/lib/buyer";
+import { toggleSavedWithMessage, useSavedIds } from "@/lib/saved";
+import { useBuyer } from "@/lib/buyer";
+import { useText } from "@/content/siteText";
 import { Link } from "react-router-dom";
 import { Property } from "@/types/property";
 import { ProjectStatusLabels, PropertyTypeLabels } from "@/constants/enums";
@@ -20,12 +20,13 @@ const PropertyCard = ({ property, className = "" }: PropertyCardProps) => {
   const saved = useSavedIds().includes(property.id);
   const buyer = useBuyer();
   const href = `/project/${property.id}`;
+  const { t, show } = useText();
 
   const bedrooms = property.bedroomSummary || (property.bedrooms != null ? String(property.bedrooms) : "");
   const size = isPlot ? property.size || property.developmentSize : property.size || property.unitSizeRange;
   const possession = property.possessionTime || property.completionDate;
   const facts = [
-    !isPlot && bedrooms ? { Icon: BedDouble, text: `${bedrooms} BHK` } : null,
+    !isPlot && bedrooms ? { Icon: BedDouble, text: t("shared.card.bhk", { value: bedrooms }) } : null,
     size ? { Icon: Ruler, text: size } : null,
     possession ? { Icon: CalendarClock, text: possession } : null,
   ].filter(Boolean) as { Icon: typeof Ruler; text: string }[];
@@ -33,21 +34,7 @@ const PropertyCard = ({ property, className = "" }: PropertyCardProps) => {
   const status = ProjectStatusLabels[property.status as keyof typeof ProjectStatusLabels] || property.status;
   const type = PropertyTypeLabels[property.propertyType as keyof typeof PropertyTypeLabels] || property.propertyType;
 
-  const onSave = async () => {
-    try {
-      const nowSaved = await toggleSaved(property.id);
-      if (nowSaved && !buyer) {
-        toast.success("Saved on this device", {
-          description: "Sign in to see it on your other devices too.",
-          action: { label: "Sign in", onClick: () => openBuyerLogin() },
-        });
-      } else {
-        toast.success(nowSaved ? "Saved to your list" : "Removed from saved projects");
-      }
-    } catch {
-      toast.error("Couldn't update saved projects. Please try again.");
-    }
-  };
+  const onSave = () => toggleSavedWithMessage(property.id, Boolean(buyer));
 
   return (
     <Card
@@ -66,9 +53,9 @@ const PropertyCard = ({ property, className = "" }: PropertyCardProps) => {
         </Link>
 
         <div className="pointer-events-none absolute left-3 top-3 flex flex-wrap gap-1.5">
-          {property.isHotProject && (
+          {property.isHotProject && show("shared.card.hot") && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground shadow-sm">
-              <Flame className="h-3.5 w-3.5" /> Hot
+              <Flame className="h-3.5 w-3.5" /> {t("shared.card.hot")}
             </span>
           )}
           <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground shadow-sm">{type}</span>
@@ -77,7 +64,7 @@ const PropertyCard = ({ property, className = "" }: PropertyCardProps) => {
         <button
           type="button"
           onClick={onSave}
-          aria-label={saved ? "Remove from saved projects" : "Save this project"}
+          aria-label={saved ? t("project.banner.unsave") : t("project.banner.save")}
           aria-pressed={saved}
           className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm transition hover:scale-110 hover:bg-white"
         >
@@ -111,13 +98,13 @@ const PropertyCard = ({ property, className = "" }: PropertyCardProps) => {
           {property.builderLogoUrl && (
             <img src={property.builderLogoUrl} alt="" className="h-5 w-5 rounded object-cover" loading="lazy" />
           )}
-          <span className="line-clamp-1">by {property.builder}</span>
-          {property.reraId && (
+          <span className="line-clamp-1">{t("shared.card.by", { builder: property.builder })}</span>
+          {property.reraId && show("shared.card.rera") && (
             <span
               className="ml-auto inline-flex shrink-0 items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700"
               title={`RERA No. ${property.reraId}`}
             >
-              <BadgeCheck className="h-3.5 w-3.5" /> RERA
+              <BadgeCheck className="h-3.5 w-3.5" /> {t("shared.card.rera")}
             </span>
           )}
         </div>
@@ -138,15 +125,15 @@ const PropertyCard = ({ property, className = "" }: PropertyCardProps) => {
             to={href}
             className="group/btn inline-flex h-10 flex-1 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
           >
-            View details
+            {t("shared.card.view")}
             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
           </Link>
           <button
             type="button"
             onClick={() => toggleCompare(property.id)}
             aria-pressed={comparing}
-            title={comparing ? "Remove from comparison" : "Add to comparison"}
-            aria-label={comparing ? "Remove from comparison" : "Add to comparison"}
+            title={comparing ? t("shared.card.compareRemove") : t("shared.card.compareAdd")}
+            aria-label={comparing ? t("shared.card.compareRemove") : t("shared.card.compareAdd")}
             className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
               comparing ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary hover:text-primary"
             }`}

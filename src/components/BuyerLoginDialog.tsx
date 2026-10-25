@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { closeBuyerLogin, completeBuyerLogin, useBuyerState } from "@/lib/buyer";
+import { Txt, useText } from "@/content/siteText";
 import { formatPhone, isValidIndianMobile, resendPhoneOtp, sendPhoneOtp, toMsisdn, verifyPhoneOtp } from "@/lib/otpWidget";
 
 const RESEND_SECONDS = 30;
@@ -13,6 +14,7 @@ const RESEND_SECONDS = 30;
 /** Phone OTP sign-in for buyers. Mounted once in App; opened with openBuyerLogin(). */
 const BuyerLoginDialog = () => {
   const { loginOpen, loginReason } = useBuyerState();
+  const { t } = useText();
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
@@ -92,10 +94,10 @@ const BuyerLoginDialog = () => {
       const accessToken = await verifyPhoneOtp(digits);
       const { buyer, merged } = await completeBuyerLogin({ accessToken, phone: toMsisdn(phone), name: name.trim() || undefined });
       const first = buyer.name?.split(" ")[0];
-      toast.success(first ? `Welcome, ${first}!` : "You're signed in", {
+      toast.success(first ? t("shared.signIn.welcome", { name: first }) : t("shared.signIn.welcomeNoName"), {
         description: merged
           ? `${merged} saved project${merged === 1 ? " is" : "s are"} now on your account.`
-          : "Projects you save will be on your account on any device.",
+          : t("shared.signIn.welcomeHint"),
       });
     } catch (err: any) {
       setError(err?.message || "That code didn't work");
@@ -111,18 +113,18 @@ const BuyerLoginDialog = () => {
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
             {step === "phone" ? <Heart className="h-6 w-6" /> : <Smartphone className="h-6 w-6" />}
           </div>
-          <DialogTitle className="text-center">{step === "phone" ? "Sign in with your phone" : "Enter the code"}</DialogTitle>
+          <DialogTitle className="text-center">{t(step === "phone" ? "shared.signIn.title" : "shared.signIn.codeTitle")}</DialogTitle>
           <DialogDescription className="text-center">
             {step === "phone"
-              ? loginReason || "Keep your saved projects on every device. No password needed: we'll text you a code."
-              : `We sent a code by SMS to ${formatPhone(toMsisdn(phone))}.`}
+              ? loginReason || t("shared.signIn.intro")
+              : t("shared.signIn.codeSent", { phone: formatPhone(toMsisdn(phone)) })}
           </DialogDescription>
         </DialogHeader>
 
         {step === "phone" ? (
           <form onSubmit={sendCode} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="buyer-phone">Mobile number</Label>
+              <Label htmlFor="buyer-phone">{t("shared.signIn.phone")}</Label>
               <div className="flex">
                 <span className="inline-flex items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm text-muted-foreground">+91</span>
                 <Input
@@ -140,19 +142,19 @@ const BuyerLoginDialog = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="buyer-name">Your name (optional)</Label>
+              <Label htmlFor="buyer-name">{t("shared.signIn.name")}</Label>
               <Input id="buyer-name" autoComplete="name" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={busy}>
-              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Send code
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {t("shared.signIn.send")}
             </Button>
-            <p className="text-center text-xs text-muted-foreground">We'll only use your number for your account and replies to your enquiries.</p>
+            <Txt k="shared.signIn.privacy" as="p" className="text-center text-xs text-muted-foreground" />
           </form>
         ) : (
           <form onSubmit={verify} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="buyer-code">Code</Label>
+              <Label htmlFor="buyer-code">{t("shared.signIn.code")}</Label>
               <Input
                 id="buyer-code"
                 ref={codeRef}
@@ -168,11 +170,11 @@ const BuyerLoginDialog = () => {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={busy}>
-              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Verify and sign in
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {t("shared.signIn.verify")}
             </Button>
             <div className="flex items-center justify-between text-sm">
               <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setStep("phone")} disabled={busy}>
-                Change number
+                {t("shared.signIn.changeNumber")}
               </button>
               <button
                 type="button"
@@ -180,7 +182,7 @@ const BuyerLoginDialog = () => {
                 onClick={resend}
                 disabled={busy || resendIn > 0}
               >
-                {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                {resendIn > 0 ? t("shared.signIn.resendIn", { seconds: resendIn }) : t("shared.signIn.resend")}
               </button>
             </div>
           </form>

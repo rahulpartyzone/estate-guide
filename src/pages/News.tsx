@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useText } from "@/content/siteText";
+import NewsletterSignup from "@/components/public/NewsletterSignup";
 import { usePageTitle } from "@/lib/pageTitle";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
@@ -32,6 +34,7 @@ const News = () => {
   const absolutize = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
 
   const [loading, setLoading] = useState(true);
+  const { t } = useText();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [newsHeaderImageUrl, setNewsHeaderImageUrl] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -80,10 +83,10 @@ const News = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <PageHero
-        title="Real Estate News"
-        subtitle="Fresh launches, market trends, policy shifts, and curated insights from our editorial desk."
+        title={t("news.banner.title")}
+        subtitle={t("news.banner.subtitle")}
         backgroundImageUrl={newsHeaderImageUrl}
-        badgeText="Latest Updates"
+        badgeText={t("news.banner.badge")}
         icon={<Newspaper className={`h-5 w-5 ${newsHeaderImageUrl ? 'text-white' : 'text-primary'}`} />}
       />
 
@@ -118,9 +121,9 @@ const News = () => {
 
         {!loading && error && (
           <PageState
-            title="Couldn’t load news"
+            title={t("news.articles.errorTitle")}
             description={error}
-            action={<Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>}
+            action={<Button variant="outline" onClick={() => window.location.reload()}>{t("news.articles.retry")}</Button>}
           />
         )}
 
@@ -146,7 +149,7 @@ const News = () => {
                 ) : null}
                 {featured.sourceUrl && (
                   <a href={featured.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline text-sm font-medium">
-                    Original Source <ExternalLink className="h-4 w-4" />
+                    {t("news.articles.originalSource")} <ExternalLink className="h-4 w-4" />
                   </a>
                 )}
               </CardContent>
@@ -171,11 +174,11 @@ const News = () => {
                     {expanded && <p className="text-sm leading-7 whitespace-pre-wrap">{item.content}</p>}
                     <div className="flex items-center justify-between pt-2">
                       <Button variant="outline" size="sm" onClick={() => setActiveId(expanded ? null : item.id)}>
-                        {expanded ? "Show Less" : "Read More"}
+                        {expanded ? t("news.articles.showLess") : t("news.articles.readMore")}
                       </Button>
                       {item.sourceUrl ? (
                         <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline text-sm">
-                          Source <ExternalLink className="h-3.5 w-3.5" />
+                          {t("news.articles.source")} <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       ) : <span />}
                     </div>
@@ -188,11 +191,12 @@ const News = () => {
 
         {!loading && !error && news.length === 0 && (
           <PageState
-            title="No news published yet"
-            description="Please check back soon for the latest real-estate updates."
+            title={t("news.articles.emptyTitle")}
+            description={t("news.articles.emptyText")}
           />
         )}
       </main>
+      <NewsletterSignup />
     </div>
   );
 };

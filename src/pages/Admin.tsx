@@ -20,6 +20,7 @@ import AdminSettings from "@/components/admin/AdminSettings";
 import AdminChangePassword from "@/components/admin/AdminChangePassword";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminAnalyticsSettings from "@/components/admin/AdminAnalyticsSettings";
+import AdminSiteText from "@/components/admin/AdminSiteText";
 import { LogOut } from "lucide-react";
 import { api } from "@/lib/api";
 import { absolutizeApiUrl } from "@/lib/url";
@@ -161,10 +162,22 @@ const Admin = () => {
         return <AdminAmenities />;
       case "settings":
         return (
-          <>
-            <AdminSettings />
-            <AdminAnalyticsSettings />
-          </>
+          <Tabs defaultValue="banners" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="banners">Banners &amp; images</TabsTrigger>
+              <TabsTrigger value="text">Site text</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            </TabsList>
+            <TabsContent value="banners">
+              <AdminSettings />
+            </TabsContent>
+            <TabsContent value="text">
+              <AdminSiteText />
+            </TabsContent>
+            <TabsContent value="analytics">
+              <AdminAnalyticsSettings />
+            </TabsContent>
+          </Tabs>
         );
       default:
         return <AdminProjects />;

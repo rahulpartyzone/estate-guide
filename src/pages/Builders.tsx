@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Txt, useText } from "@/content/siteText";
 import { usePageTitle } from "@/lib/pageTitle";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
@@ -31,6 +32,7 @@ const Builders = () => {
   const absolutize = (value?: string) => absolutizeApiUrl(value, RAW_API_BASE);
 
   const [builders, setBuilders] = useState<Builder[]>([]);
+  const { t } = useText();
   const [buildersHeaderImageUrl, setBuildersHeaderImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,8 +85,8 @@ const Builders = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <PageHero
-        title="Builders"
-        subtitle="Explore all builders and their listed projects."
+        title={t("builders.banner.title")}
+        subtitle={t("builders.banner.subtitle")}
         backgroundImageUrl={buildersHeaderImageUrl}
       />
 
@@ -105,9 +107,9 @@ const Builders = () => {
 
         {!loading && error && (
           <PageState
-            title="Couldn’t load builders"
+            title={t("builders.list.errorTitle")}
             description={error}
-            action={<Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>}
+            action={<Button variant="outline" onClick={() => window.location.reload()}>{t("builders.list.retry")}</Button>}
           />
         )}
 
@@ -124,16 +126,16 @@ const Builders = () => {
                       {builder.logoUrl && <img src={builder.logoUrl} alt={builder.name} className="h-12 w-12 rounded-full object-cover border" />}
                       <div>
                         <h2 className="font-semibold line-clamp-1">{builder.name}</h2>
-                        <p className="text-xs text-muted-foreground">{builder._count?.properties || 0} projects</p>
+                        <p className="text-xs text-muted-foreground">{t("builders.list.projects", { count: builder._count?.properties || 0 })}</p>
                       </div>
                     </div>
                     {builder.description && <p className="text-sm text-muted-foreground line-clamp-3">{builder.description}</p>}
                     <div className="text-xs text-muted-foreground grid grid-cols-1 gap-1">
                       {typeof builder.experienceYears === "number" && (
-                        <span className="inline-flex items-center gap-2"><BriefcaseBusiness className="h-3.5 w-3.5" /> {builder.experienceYears} yrs experience</span>
+                        <Txt k="builders.list.experience" vars={{ years: builder.experienceYears }} className="inline-flex items-center gap-2" before={<BriefcaseBusiness className="h-3.5 w-3.5" />} />
                       )}
                       {typeof builder.rating === "number" && (
-                        <span className="inline-flex items-center gap-2"><Star className="h-3.5 w-3.5" /> {builder.rating}/5 rating</span>
+                        <Txt k="builders.list.rating" vars={{ rating: builder.rating }} className="inline-flex items-center gap-2" before={<Star className="h-3.5 w-3.5" />} />
                       )}
                       {builder.email && (
                         <span className="inline-flex items-center gap-2"><Mail className="h-3.5 w-3.5" /> {builder.email}</span>
@@ -148,7 +150,7 @@ const Builders = () => {
             ))}
             {!sortedBuilders.length && (
               <div className="sm:col-span-2 lg:col-span-3">
-                <PageState title="No builders found" description="Please check back soon for listed builder profiles." />
+                <PageState title={t("builders.list.emptyTitle")} description={t("builders.list.emptyText")} />
               </div>
             )}
           </div>

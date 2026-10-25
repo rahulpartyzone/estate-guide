@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Home, Calendar, Download, Phone, Mail, Share, Heart, Bath, Bed, Ruler, MessageCircle, Scale, Images } from "lucide-react";
 import PhotoLightbox from "@/components/PhotoLightbox";
 import { whatsappDigits } from "@/lib/whatsapp";
+import { Txt, useText } from "@/content/siteText";
 import MapView from "@/components/MapView";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from "@/components/ui/carousel";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -19,7 +20,7 @@ import { toast } from "sonner";
 import { mapBackendProperty, formatINRShort } from '@/lib/propertyMapper';
 import { absolutizeApiUrl } from "@/lib/url";
 import type { Property } from '@/types/property';
-import { toggleSaved, useSavedIds } from '@/lib/saved';
+import { toggleSavedWithMessage, useSavedIds } from '@/lib/saved';
 import { openBuyerLogin, useBuyer } from '@/lib/buyer';
 import { usePageTitle } from '@/lib/pageTitle';
 import ProjectEnquiryDialog, { type EnquiryMode } from '@/components/ProjectEnquiryDialog';
@@ -38,6 +39,7 @@ const ProjectDetail = () => {
   const isComparing = Boolean(id && compareIds.includes(id));
   const isSaved = Boolean(id && savedIds.includes(id));
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const { t, show } = useText();
   const [property, setProperty] = useState<Property | undefined>(undefined);
   usePageTitle(property?.name || null);
   const [galleryApi, setGalleryApi] = useState<CarouselApi | null>(null);
@@ -134,9 +136,9 @@ const ProjectDetail = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-4">Property Not Found</h1>
-          <p className="text-muted-foreground mb-8">The property you're looking for doesn't exist.</p>
-          <Button onClick={() => window.history.back()}>Go Back</Button>
+          <h1 className="text-4xl font-bold text-foreground mb-4">{t("project.banner.notFound")}</h1>
+          <Txt k="project.banner.notFoundText" as="p" className="text-muted-foreground mb-8" />
+          <Button onClick={() => window.history.back()}>{t("project.banner.goBack")}</Button>
         </div>
       </div>
     );
@@ -269,21 +271,8 @@ const ProjectDetail = () => {
     }
   };
 
-  const handleWishlist = async () => {
-    if (!id) return;
-    try {
-      const nowSaved = await toggleSaved(id);
-      if (nowSaved && !buyer) {
-        toast.success("Saved on this device", {
-          description: "Sign in to see it on your other devices too.",
-          action: { label: "Sign in", onClick: () => openBuyerLogin() },
-        });
-      } else {
-        toast.success(nowSaved ? "Saved. Find it under Saved in the menu." : "Removed from saved projects");
-      }
-    } catch {
-      toast.error("Couldn't update saved projects. Please try again.");
-    }
+  const handleWishlist = () => {
+    if (id) toggleSavedWithMessage(id, Boolean(buyer));
   };
 
   const handleWhatsAppChat = () => {
@@ -293,7 +282,7 @@ const ProjectDetail = () => {
       toast.error('WhatsApp contact is not configured');
       return;
     }
-    const message = encodeURIComponent(`Hi, I'm interested in ${property?.name || 'this project'}. Please share more details.`);
+    const message = encodeURIComponent(t("project.side.whatsappMessage", { project: property?.name || "" }));
     const url = `https://wa.me/${digits}?text=${message}`;
     window.open(url, '_blank');
   };
@@ -302,7 +291,7 @@ const ProjectDetail = () => {
     <div className="min-h-screen bg-background pb-20 lg:pb-0">
       <Header />
       {loading && (
-        <div className="container mx-auto px-4 py-8 text-sm text-muted-foreground">Loading property...</div>
+        <div className="container mx-auto px-4 py-8 text-sm text-muted-foreground">{t("project.banner.loading")}</div>
       )}
       {error && (
         <div className="container mx-auto px-4 pt-2 text-sm text-red-500">{error}</div>
@@ -340,7 +329,7 @@ const ProjectDetail = () => {
             variant="secondary" 
             className="bg-white/90 hover:bg-white"
             onClick={handleWishlist}
-            aria-label={isSaved ? "Remove from saved projects" : "Save this project"}
+            aria-label={isSaved ? t("project.banner.unsave") : t("project.banner.save")}
             aria-pressed={isSaved}
           >
             <Heart className={`h-4 w-4 ${isSaved ? "fill-red-500 text-red-500" : ""}`} />
@@ -358,8 +347,8 @@ const ProjectDetail = () => {
                 <Badge variant="secondary" className="bg-white/20 text-white">
                   {ProjectStatusLabels[property.status as keyof typeof ProjectStatusLabels] || property.status}
                 </Badge>
-                {property.isHotProject && (
-                  <Badge className="bg-red-500 text-white">🔥 Hot Project</Badge>
+                {property.isHotProject && show("project.banner.hot") && (
+                  <Badge className="bg-red-500 text-white">{t("project.banner.hot")}</Badge>
                 )}
               </div>
               <h1 className="text-3xl md:text-5xl font-bold text-white mb-3">
@@ -382,7 +371,7 @@ const ProjectDetail = () => {
             onClick={() => setLightboxIndex(0)}
             className="absolute right-4 top-20 inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-foreground shadow-md transition hover:bg-white md:bottom-6 md:right-6 md:top-auto"
           >
-            <Images className="h-4 w-4" /> {galleryPhotos.length} photos
+            <Images className="h-4 w-4" /> {t("project.banner.photos", { count: galleryPhotos.length })}
           </button>
         )}
   </section>
@@ -398,76 +387,76 @@ const ProjectDetail = () => {
               <Tabs defaultValue="overview" className="space-y-8">
                 {/* Scrolls sideways on phones instead of squeezing six labels into one row */}
                 <TabsList className="scrollbar-none flex h-auto w-full justify-start gap-1 overflow-x-auto lg:grid lg:grid-cols-6">
-                  <TabsTrigger className="shrink-0 px-4 py-2" value="overview">Overview</TabsTrigger>
-                  <TabsTrigger className="shrink-0 px-4 py-2" value="gallery">Gallery</TabsTrigger>
-                  <TabsTrigger className="shrink-0 px-4 py-2" value="floor-plans">Floor Plans</TabsTrigger>
-                  <TabsTrigger className="shrink-0 px-4 py-2" value="amenities">Amenities</TabsTrigger>
-                  <TabsTrigger className="shrink-0 px-4 py-2" value="location">Location</TabsTrigger>
-                  <TabsTrigger className="shrink-0 px-4 py-2" value="builder-profile">Builder</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="overview">{t("project.tabs.overview")}</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="gallery">{t("project.tabs.gallery")}</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="floor-plans">{t("project.tabs.floorPlans")}</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="amenities">{t("project.tabs.amenities")}</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="location">{t("project.tabs.location")}</TabsTrigger>
+                  <TabsTrigger className="shrink-0 px-4 py-2" value="builder-profile">{t("project.tabs.builder")}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
                   <Card className="p-6">
-                    <h2 className="text-2xl font-bold text-foreground mb-4">Project Overview</h2>
+                    <Txt k="project.overview.title" as="h2" className="text-2xl font-bold text-foreground mb-4" />
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                       <div className="text-center p-3 bg-secondary rounded-lg">
                         <MapPin className="h-6 w-6 text-primary mx-auto mb-2" />
-                        <div className="text-sm text-muted-foreground">Location</div>
+                        <div className="text-sm text-muted-foreground">{t("project.overview.location")}</div>
                         <div className="font-semibold text-xs">{property.area}, {property.city}</div>
                       </div>
                       {property.priceRange && (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Price Range</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.price")}</div>
                           <div className="font-semibold text-xs">{property.priceRange}</div>
                         </div>
                       )}
                       {property.status && (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Status</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.status")}</div>
                           <div className="font-semibold text-xs">{ProjectStatusLabels[property.status as keyof typeof ProjectStatusLabels] || property.status}</div>
                         </div>
                       )}
                       {property.developmentSize && (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Ruler className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Development Size</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.developmentSize")}</div>
                           <div className="font-semibold text-xs">{property.developmentSize}</div>
                         </div>
                       )}
                       {property.size && (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Ruler className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Unit Size</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.unitSize")}</div>
                           <div className="font-semibold text-xs">{property.size}</div>
                         </div>
                       )}
                       {property.totalUnits ? (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Home className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Total Units</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.totalUnits")}</div>
                           <div className="font-semibold text-xs">{property.totalUnits}</div>
                         </div>
                       ) : null}
                       {property.towersBlocks && (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Home className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Towers and Blocks</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.towers")}</div>
                           <div className="font-semibold text-xs">{property.towersBlocks}</div>
                         </div>
                       )}
                       {property.unitVariants && (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Ruler className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Unit Variants</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.variants")}</div>
                           <div className="font-semibold text-xs">{property.unitVariants}</div>
                         </div>
                       )}
                       {property.possessionTime && (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Possession Time</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.possession")}</div>
                           <div className="font-semibold text-xs">{property.possessionTime}</div>
                         </div>
                       )}
@@ -476,8 +465,8 @@ const ProjectDetail = () => {
                         return bedroomLabel ? (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Bed className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Bedrooms</div>
-                          <div className="font-semibold">{bedroomLabel} BHK</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.bedrooms")}</div>
+                          <div className="font-semibold">{t("shared.card.bhk", { value: bedroomLabel })}</div>
                         </div>
                         ) : null;
                       })()}
@@ -486,7 +475,7 @@ const ProjectDetail = () => {
                         return bathroomLabel ? (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Bath className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Bathrooms</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.bathrooms")}</div>
                           <div className="font-semibold">{bathroomLabel}</div>
                         </div>
                         ) : null;
@@ -494,14 +483,13 @@ const ProjectDetail = () => {
                       {property.completionDate && (
                         <div className="text-center p-3 bg-secondary rounded-lg">
                           <Calendar className="h-6 w-6 text-primary mx-auto mb-2" />
-                          <div className="text-sm text-muted-foreground">Completion</div>
+                          <div className="text-sm text-muted-foreground">{t("project.overview.completion")}</div>
                           <div className="font-semibold text-xs">{property.completionDate}</div>
                         </div>
                       )}
                     </div>
                     <p className="text-muted-foreground leading-relaxed">
-                      {property.description} This exceptional project by {property.builder} offers 
-                      modern living with premium amenities and strategic location advantages.
+                      {property.description} {t("project.overview.extra", { builder: property.builder })}
                     </p>
                   </Card>
                 </TabsContent>
@@ -511,17 +499,17 @@ const ProjectDetail = () => {
                     <Card className="p-6 space-y-4">
                       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <h2 className="text-2xl font-bold text-foreground">Floor Plans</h2>
-                          <p className="text-sm text-muted-foreground">Explore the configurations available for this project.</p>
+                          <Txt k="project.floorPlans.title" as="h2" className="text-2xl font-bold text-foreground" />
+                          <Txt k="project.floorPlans.subtitle" as="p" className="text-sm text-muted-foreground" />
                         </div>
                         <div className="text-xs font-medium uppercase text-muted-foreground">
-                          {property.floorPlans.length} option{property.floorPlans.length === 1 ? "" : "s"}
+                          {property.floorPlans.length === 1 ? t("project.floorPlans.countOne") : t("project.floorPlans.countMany", { count: property.floorPlans.length })}
                         </div>
                       </div>
                       <Carousel opts={{ align: "start" }} className="pt-2">
                         <CarouselContent>
                           {property.floorPlans.map((plan, index) => {
-                            const planTitle = plan.type?.trim() || `Option ${index + 1}`;
+                            const planTitle = plan.type?.trim() || t("project.floorPlans.option", { number: index + 1 });
                             const isPlot = property.propertyType === 'Plot';
                             const hasBedrooms = !isPlot && typeof plan.bedrooms === "number" && !Number.isNaN(plan.bedrooms);
                             const hasBathrooms = !isPlot && typeof plan.bathrooms === "number" && !Number.isNaN(plan.bathrooms);
@@ -545,20 +533,20 @@ const ProjectDetail = () => {
                                       />
                                     ) : (
                                       <div className="flex h-[26rem] w-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                                        <span className="text-sm font-medium">Floor plan preview coming soon</span>
-                                        <span className="text-xs">Upload a high-resolution image to showcase this layout.</span>
+                                        <Txt k="project.floorPlans.noImage" className="text-sm font-medium" />
+                                        <Txt k="project.floorPlans.noImageHint" className="text-xs" />
                                       </div>
                                     )}
                                   </div>
                                   <div className="flex flex-col gap-4 px-6 pb-6">
                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
                                       <div>
-                                        <span className="text-xs uppercase tracking-wide text-muted-foreground">Configuration</span>
+                                        <Txt k="project.floorPlans.configuration" className="text-xs uppercase tracking-wide text-muted-foreground" />
                                         <h3 className="text-xl font-semibold text-foreground">{planTitle}</h3>
                                       </div>
                                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                                         <span className="rounded-full bg-secondary px-3 py-1 font-medium">
-                                          Plan {index + 1} of {property.floorPlans.length}
+                                          {t("project.floorPlans.planOf", { number: index + 1, count: property.floorPlans.length })}
                                         </span>
                                         {planPrice && (
                                           <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">
@@ -600,13 +588,13 @@ const ProjectDetail = () => {
                       </Carousel>
                     </Card>
                   ) : (
-                    <Card className="p-6 text-sm text-muted-foreground">No floor plans available.</Card>
+                    <Card className="p-6 text-sm text-muted-foreground">{t("project.floorPlans.none")}</Card>
                   )}
                 </TabsContent>
 
                 <TabsContent value="amenities" className="space-y-6">
                   <Card className="p-6">
-                    <h2 className="text-2xl font-bold text-foreground mb-4">Amenities & Features</h2>
+                    <Txt k="project.amenities.title" as="h2" className="text-2xl font-bold text-foreground mb-4" />
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 border-t border-l border-border">
                       {property.amenities.map((amenity, index) => {
                         const meta = amenityCatalog.find((a:any) => a.name?.toLowerCase() === amenity.toLowerCase());
@@ -637,10 +625,10 @@ const ProjectDetail = () => {
 
                 <TabsContent value="location" className="space-y-6">
                   <Card className="p-6">
-                    <h2 className="text-2xl font-bold text-foreground mb-4">Location & Connectivity</h2>
+                    <Txt k="project.location.title" as="h2" className="text-2xl font-bold text-foreground mb-4" />
                     <div className="space-y-4">
                       <div>
-                        <h3 className="font-semibold mb-2">Address</h3>
+                        <Txt k="project.location.address" as="h3" className="font-semibold mb-2" />
                         <p className="text-muted-foreground">{property.area}, {property.city}</p>
                       </div>
                       {property.coordinates ? (
@@ -653,20 +641,20 @@ const ProjectDetail = () => {
                               rel="noopener noreferrer"
                               className="text-xs text-primary hover:underline"
                             >
-                              Open in Google Maps
+                              {t("project.location.openMaps")}
                             </a>
                           </div>
                         </>
                       ) : (
                         <div className="h-64 bg-secondary rounded-lg flex flex-col items-center justify-center gap-2">
-                          <p className="text-muted-foreground">Interactive Map Coming Soon</p>
+                          <Txt k="project.location.noMap" as="p" className="text-muted-foreground" />
                           <a
                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(property.area + ', ' + property.city)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-primary hover:underline"
                           >
-                            Search this location in Google Maps
+                            {t("project.location.searchMaps")}
                           </a>
                         </div>
                       )}
@@ -677,7 +665,7 @@ const ProjectDetail = () => {
                 <TabsContent value="gallery" className="space-y-6">
                   <ProjectMedia name={property.name} videoUrl={property.videoUrl} virtualTourUrl={property.virtualTourUrl} />
                   <Card className="p-6">
-                    <h2 className="text-2xl font-bold text-foreground mb-4">Photo Gallery</h2>
+                    <Txt k="project.gallery.title" as="h2" className="text-2xl font-bold text-foreground mb-4" />
                     {property.images?.length ? (
                       <div className="relative">
                         {/* Thumbnails */}
@@ -725,12 +713,12 @@ const ProjectDetail = () => {
                           <CarouselNext className="-right-3 md:-right-6" aria-label="Next image" />
                         </Carousel>
                         <div className="mt-3 text-center text-xs text-muted-foreground">
-                          Swipe or use the arrows to browse. Tap a photo to see it full screen.
+                          {t("project.gallery.hint")}
                         </div>
                       </div>
                     ) : (
                       <div className="aspect-video bg-secondary/50 rounded-lg flex items-center justify-center text-muted-foreground">
-                        No images available
+                        {t("project.gallery.none")}
                       </div>
                     )}
                   </Card>
@@ -738,7 +726,7 @@ const ProjectDetail = () => {
 
                 <TabsContent value="builder-profile" className="space-y-6">
                   <Card className="p-6">
-                    <h2 className="text-2xl font-bold text-foreground mb-4">Builder Profile</h2>
+                    <Txt k="project.builder.title" as="h2" className="text-2xl font-bold text-foreground mb-4" />
                     <div className="space-y-4">
                       <div className="flex items-start gap-4">
                         {property.builderLogoUrl ? (
@@ -758,10 +746,10 @@ const ProjectDetail = () => {
                         <div>
                           <h3 className="text-xl font-semibold text-foreground">{property.builder}</h3>
                           {property.builderExperienceYears != null && (
-                            <p className="text-sm text-muted-foreground">Experience: {property.builderExperienceYears} years</p>
+                            <Txt k="project.builder.experience" vars={{ years: property.builderExperienceYears }} as="p" className="text-sm text-muted-foreground" />
                           )}
                           {property.builderRating != null && (
-                            <p className="text-sm text-muted-foreground">Rating: {property.builderRating.toFixed(1)} / 5</p>
+                            <Txt k="project.builder.rating" vars={{ rating: property.builderRating.toFixed(1) }} as="p" className="text-sm text-muted-foreground" />
                           )}
                         </div>
                       </div>
@@ -769,21 +757,21 @@ const ProjectDetail = () => {
                       {property.builderDescription ? (
                         <p className="text-muted-foreground leading-relaxed">{property.builderDescription}</p>
                       ) : (
-                        <p className="text-muted-foreground">Builder description is not available.</p>
+                        <Txt k="project.builder.noDescription" as="p" className="text-muted-foreground" />
                       )}
 
                       {(property.builderWebsite || property.builderPhone || property.builderEmail) && (
                         <div className="grid gap-3 sm:grid-cols-2">
                           {property.builderWebsite && (
                             <a href={property.builderWebsite} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
-                              Website: {property.builderWebsite}
+                              {t("project.builder.website")} {property.builderWebsite}
                             </a>
                           )}
                           {property.builderPhone && (
-                            <div className="text-sm text-muted-foreground">Phone: {property.builderPhone}</div>
+                            <div className="text-sm text-muted-foreground">{t("project.builder.phone")} {property.builderPhone}</div>
                           )}
                           {property.builderEmail && (
-                            <div className="text-sm text-muted-foreground">Email: {property.builderEmail}</div>
+                            <div className="text-sm text-muted-foreground">{t("project.builder.email")} {property.builderEmail}</div>
                           )}
                         </div>
                       )}
@@ -812,14 +800,14 @@ const ProjectDetail = () => {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <div className="text-xs text-muted-foreground">Built by</div>
+                    <Txt k="project.side.builtBy" as="div" className="text-xs text-muted-foreground" />
                     <div className="font-semibold truncate">{property.builder}</div>
                   </div>
                 </div>
                 <div className="text-center mb-6">
                   {property.reraId && (
                     <div className="text-sm text-muted-foreground mb-2">
-                      <span className="font-medium text-foreground">RERA No.</span>: {property.reraId}
+                      <span className="font-medium text-foreground">{t("project.side.rera")}</span>: {property.reraId}
                     </div>
                   )}
                   {property.priceRange && (
@@ -827,9 +815,9 @@ const ProjectDetail = () => {
                       {property.priceRange}
                     </div>
                   )}
-                  {property.developmentSize && <div className="text-muted-foreground">Development Size: {property.developmentSize}</div>}
-                  {property.size && <div className="text-muted-foreground">Unit Size: {property.size}</div>}
-                  {property.totalUnits ? <div className="text-muted-foreground">Total Units: {property.totalUnits}</div> : null}
+                  {property.developmentSize && <div className="text-muted-foreground">{t("project.side.developmentSize", { value: property.developmentSize })}</div>}
+                  {property.size && <div className="text-muted-foreground">{t("project.side.unitSize", { value: property.size })}</div>}
+                  {property.totalUnits ? <div className="text-muted-foreground">{t("project.side.totalUnits", { value: property.totalUnits })}</div> : null}
                 </div>
 
                 <div className="space-y-3">
@@ -837,37 +825,40 @@ const ProjectDetail = () => {
                     className="w-full bg-gradient-primary text-lg py-6"
                     onClick={handleDownloadBrochure}
                     disabled={!hasBrochure}
-                    title={!hasBrochure ? 'Brochure not available' : undefined}
                   >
                     <Download className="h-5 w-5 mr-2" />
-                    Download Brochure
+                    {t("project.side.brochure")}
                   </Button>
                   
                   {!hasBrochure && (
-                    <div className="text-xs text-muted-foreground text-center">
-                      Brochure not available for this property yet.
-                    </div>
+                    <Txt k="project.side.noBrochure" as="div" className="text-xs text-muted-foreground text-center" />
                   )}
 
-                  <Button variant="outline" className="w-full py-6" onClick={handleWhatsAppChat}>
-                    <MessageCircle className="h-5 w-5 mr-2" />
-                    Chat on WhatsApp
-                  </Button>
-                  
-                  <Button variant="outline" className="w-full py-6" onClick={() => setEnquiry("site_visit")}>
-                    <Phone className="h-5 w-5 mr-2" />
-                    Schedule Site Visit
-                  </Button>
+                  {show("project.side.whatsapp") && (
+                    <Button variant="outline" className="w-full py-6" onClick={handleWhatsAppChat}>
+                      <MessageCircle className="h-5 w-5 mr-2" />
+                      {t("project.side.whatsapp")}
+                    </Button>
+                  )}
 
-                  <Button variant="outline" className="w-full py-6" onClick={() => setEnquiry("info")}>
-                    <Mail className="h-5 w-5 mr-2" />
-                    Get More Info
-                  </Button>
+                  {show("project.side.visit") && (
+                    <Button variant="outline" className="w-full py-6" onClick={() => setEnquiry("site_visit")}>
+                      <Phone className="h-5 w-5 mr-2" />
+                      {t("project.side.visit")}
+                    </Button>
+                  )}
 
-                  {id && (
+                  {show("project.side.info") && (
+                    <Button variant="outline" className="w-full py-6" onClick={() => setEnquiry("info")}>
+                      <Mail className="h-5 w-5 mr-2" />
+                      {t("project.side.info")}
+                    </Button>
+                  )}
+
+                  {id && (isComparing || show("project.side.compareAdd")) && (
                     <Button variant="ghost" className="w-full" onClick={() => toggleCompare(id)} aria-pressed={isComparing}>
                       <Scale className="h-4 w-4 mr-2" />
-                      {isComparing ? "Remove from comparison" : "Add to comparison"}
+                      {isComparing ? t("project.side.compareRemove") : t("project.side.compareAdd")}
                     </Button>
                   )}
                 </div>
@@ -881,31 +872,41 @@ const ProjectDetail = () => {
       {/* Phones: the main actions stay in reach at the bottom of the screen */}
       {property && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur-sm lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-          <div className={`grid gap-1 px-2 py-2 ${companyPhone ? "grid-cols-4" : "grid-cols-3"}`}>
-            {companyPhone && (
-              <a
-                href={`tel:${companyPhone.replace(/[^\d+]/g, "")}`}
-                className="flex flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-xs font-medium text-foreground active:bg-muted"
-              >
-                <Phone className="h-5 w-5 text-primary" /> Call
-              </a>
-            )}
-            <button type="button" onClick={handleWhatsAppChat} className="flex flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-xs font-medium text-foreground active:bg-muted">
-              <MessageCircle className="h-5 w-5 text-emerald-600" /> WhatsApp
-            </button>
-            <button type="button" onClick={() => setEnquiry("site_visit")} className="flex flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-xs font-medium text-foreground active:bg-muted">
-              <Calendar className="h-5 w-5 text-primary" /> Site visit
-            </button>
-            {hasBrochure ? (
-              <button type="button" onClick={handleDownloadBrochure} className="flex flex-col items-center justify-center gap-0.5 rounded-md bg-primary py-1.5 text-xs font-semibold text-primary-foreground active:opacity-90">
-                <Download className="h-5 w-5" /> Brochure
-              </button>
-            ) : (
-              <button type="button" onClick={() => setEnquiry("info")} className="flex flex-col items-center justify-center gap-0.5 rounded-md bg-primary py-1.5 text-xs font-semibold text-primary-foreground active:opacity-90">
-                <Mail className="h-5 w-5" /> Enquire
-              </button>
-            )}
-          </div>
+          {(() => {
+            const item = "flex flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-xs font-medium text-foreground active:bg-muted";
+            const main = "flex flex-col items-center justify-center gap-0.5 rounded-md bg-primary py-1.5 text-xs font-semibold text-primary-foreground active:opacity-90";
+            const items = [
+              companyPhone && show("project.bar.call") && (
+                <a key="call" href={`tel:${companyPhone.replace(/[^\d+]/g, "")}`} className={item}>
+                  <Phone className="h-5 w-5 text-primary" /> {t("project.bar.call")}
+                </a>
+              ),
+              show("project.bar.whatsapp") && (
+                <button key="wa" type="button" onClick={handleWhatsAppChat} className={item}>
+                  <MessageCircle className="h-5 w-5 text-emerald-600" /> {t("project.bar.whatsapp")}
+                </button>
+              ),
+              show("project.bar.visit") && (
+                <button key="visit" type="button" onClick={() => setEnquiry("site_visit")} className={item}>
+                  <Calendar className="h-5 w-5 text-primary" /> {t("project.bar.visit")}
+                </button>
+              ),
+              hasBrochure ? (
+                <button key="brochure" type="button" onClick={handleDownloadBrochure} className={main}>
+                  <Download className="h-5 w-5" /> {t("project.bar.brochure")}
+                </button>
+              ) : (
+                <button key="enquire" type="button" onClick={() => setEnquiry("info")} className={main}>
+                  <Mail className="h-5 w-5" /> {t("project.bar.enquire")}
+                </button>
+              ),
+            ].filter(Boolean);
+            return (
+              <div className="grid gap-1 px-2 py-2" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+                {items}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -923,13 +924,13 @@ const ProjectDetail = () => {
       <Dialog open={otpOpen} onOpenChange={setOtpOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Download Brochure</DialogTitle>
+            <DialogTitle>{t("project.brochure.title")}</DialogTitle>
           </DialogHeader>
           {otpStep === 'enter-contact' ? (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Enter your phone number to receive an OTP.</p>
+              <p className="text-sm text-muted-foreground">{t("project.brochure.intro")}</p>
               <Input
-                placeholder="Phone number"
+                placeholder={t("project.brochure.phone")}
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 disabled={otpBusy}
@@ -937,24 +938,24 @@ const ProjectDetail = () => {
                 autoComplete="tel"
               />
               <Button className="w-full" onClick={submitContact} disabled={otpBusy}>
-                {otpBusy ? 'Sending…' : 'Send OTP'}
+                {otpBusy ? t("project.brochure.sending") : t("project.brochure.send")}
               </Button>
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Enter the OTP sent to {contact}.</p>
+              <p className="text-sm text-muted-foreground">{t("project.brochure.sent", { phone: contact })}</p>
               <Input
-                placeholder="6-digit OTP"
+                placeholder={t("project.brochure.otp")}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 disabled={otpBusy}
               />
               <div className="flex gap-2">
                 <Button className="flex-1" variant="outline" onClick={() => setOtpStep('enter-contact')} disabled={otpBusy}>
-                  Back
+                  {t("project.brochure.back")}
                 </Button>
                 <Button className="flex-1" onClick={submitOtp} disabled={otpBusy}>
-                  {otpBusy ? 'Verifying…' : 'Verify & Download'}
+                  {otpBusy ? t("project.brochure.verifying") : t("project.brochure.verify")}
                 </Button>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useCompareIds } from "@/lib/compare";
 import { whatsappDigits } from "@/lib/whatsapp";
+import { useText } from "@/content/siteText";
 
 /** WhatsApp logo (lucide has no brand icons for it) */
 const WhatsAppIcon = ({ className = "" }: { className?: string }) => (
@@ -15,6 +16,7 @@ const WhatsAppIcon = ({ className = "" }: { className?: string }) => (
 const WhatsAppButton = () => {
   const { pathname } = useLocation();
   const comparing = useCompareIds().length > 0;
+  const { t, show } = useText();
   const [number, setNumber] = useState("");
 
   useEffect(() => {
@@ -27,9 +29,7 @@ const WhatsAppButton = () => {
   if (!number || pathname.startsWith("/admin")) return null;
   // Project pages already have WhatsApp in the bar at the bottom on phones.
   const onProject = pathname.startsWith("/project/");
-  const text = encodeURIComponent(
-    onProject ? `Hi, I'm interested in a project I saw on your website: ${window.location.href}` : "Hi, I'd like help finding a home.",
-  );
+  const text = encodeURIComponent(onProject ? t("shared.whatsapp.projectMessage", { link: window.location.href }) : t("shared.whatsapp.message"));
 
   return (
     <a
@@ -42,7 +42,7 @@ const WhatsAppButton = () => {
       } ${comparing ? "bottom-24" : "bottom-5 md:bottom-6"}`}
     >
       <WhatsAppIcon className="h-6 w-6" />
-      <span className="hidden pr-1 text-sm font-semibold md:inline">Chat with us</span>
+      {show("shared.whatsapp.label") && <span className="hidden pr-1 text-sm font-semibold md:inline">{t("shared.whatsapp.label")}</span>}
     </a>
   );
 };

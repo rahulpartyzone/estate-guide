@@ -3,10 +3,8 @@ import { usePageTitle } from "@/lib/pageTitle";
 import Hero from "@/components/Hero";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import FeaturedProjects from "@/components/FeaturedProjects";
-import { Button } from "@/components/ui/button";
+import NewsletterSignup from "@/components/public/NewsletterSignup";
 import { useNavigate } from "react-router-dom";
 import BrowseByArea from "@/components/home/BrowseByArea";
 import type { Suggestion } from "@/components/SearchSuggest";
@@ -41,10 +39,6 @@ const Index = () => {
   });
   const [loadingProps, setLoadingProps] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -116,29 +110,6 @@ const Index = () => {
     navigate(q ? `/projects?q=${encodeURIComponent(q)}` : "/projects");
   };
 
-  const subscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.match(/^[^@\s]+@[^@\s]+\.[^@\s]+$/)) {
-      toast({ title: "Enter a valid email", variant: "destructive" });
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await api.subscribe(email, name || undefined);
-      toast({ title: "Subscribed!" });
-      setEmail("");
-      setName("");
-    } catch (e: any) {
-      if (e?.status === 409) {
-        toast({ title: "Already subscribed", description: "This email is already on our list." });
-      } else {
-        toast({ title: "Subscription failed", description: e?.message, variant: "destructive" });
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -160,36 +131,7 @@ const Index = () => {
       <BuilderStrip />
       <Testimonials />
       <LeadPreferenceForm sourcePage="landing" className="py-12 md:py-16" />
-      <section className="border-t bg-muted/30 py-16">
-        <div className="container mx-auto max-w-3xl space-y-6 px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold tracking-tight">Stay updated</h2>
-          <p className="text-muted-foreground">
-            New project launches, price updates and offers, straight to your inbox. No spam.
-          </p>
-          <form onSubmit={subscribe} className="grid gap-3 text-left md:grid-cols-3">
-            <Input
-              placeholder="Your name (optional)"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="h-11 md:col-span-1"
-            />
-            <Input
-              placeholder="Email address"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-              type="email"
-              className="h-11 md:col-span-1"
-            />
-            <Button type="submit" disabled={submitting} className="h-11 w-full md:col-span-1">
-              {submitting ? "Subscribing..." : "Subscribe"}
-            </Button>
-            <div className="text-center text-xs text-muted-foreground md:col-span-3">
-              You can unsubscribe anytime via a link in our emails.
-            </div>
-          </form>
-        </div>
-      </section>
+      <NewsletterSignup />
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import SearchSuggest, { type Suggestion } from "@/components/SearchSuggest";
+import { text, useText } from "@/content/siteText";
 import type { Property } from "@/types/property";
 import heroBuilding from "@/assets/hero-building.jpg";
 import { FormEvent } from "react";
@@ -33,6 +34,7 @@ const Hero = ({
   description,
   stats,
 }: HeroProps) => {
+  useText();
   const heroTitlePrefix = titlePrefix?.trim() || "Find Your";
   const heroTitleHighlight = titleHighlight?.trim() || "Dream Home";
   const heroDescription = description?.trim() || "Discover premium properties with modern amenities and prime locations. Your perfect home awaits in our curated collection of luxury real estate.";
@@ -82,7 +84,6 @@ const Hero = ({
                     onSubmit={onSearchSubmit}
                     onSelect={(s) => onSuggestionSelect?.(s)}
                     properties={properties}
-                    placeholder="Area, city, project or builder"
                     inputClassName="h-12 rounded-xl border-0 bg-white/95 pr-4 text-base text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
@@ -93,7 +94,7 @@ const Hero = ({
                   disabled={isSearching}
                 >
                   <Search className="h-5 w-5 mr-2" />
-                  {isSearching ? "Searching..." : "Search Properties"}
+                  {isSearching ? "…" : text("home.banner.button")}
                 </Button>
               </div>
             </form>

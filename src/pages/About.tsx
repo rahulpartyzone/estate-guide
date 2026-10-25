@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { usePageTitle } from "@/lib/pageTitle";
 import Header from "@/components/Header";
+import PageHero from "@/components/public/PageHero";
+import { Txt, useText } from "@/content/siteText";
 import { api } from "@/lib/api";
 import { absolutizeApiUrl } from "@/lib/url";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +44,7 @@ const About = () => {
 
   const [profile, setProfile] = useState<SiteProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useText();
 
   useEffect(() => {
     let cancelled = false;
@@ -74,30 +77,17 @@ const About = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <section className="relative border-b overflow-hidden min-h-[300px] md:min-h-[360px] flex items-center">
-        {aboutHeroImageUrl ? (
-          <>
-            <div className="absolute inset-0 bg-cover bg-center md:bg-fixed scale-105" style={{ backgroundImage: `url(${aboutHeroImageUrl})` }} />
-            <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
-          </>
-        ) : (
-          <div className="absolute inset-0 bg-gradient-subtle" />
-        )}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${aboutHeroImageUrl ? 'bg-white/20' : 'bg-primary/10'}`}>
-              <Building2 className={`h-6 w-6 ${aboutHeroImageUrl ? 'text-white' : 'text-primary'}`} />
-            </div>
-            <Badge variant="secondary">Company Overview</Badge>
-          </div>
-          <h1 className={`text-4xl md:text-5xl font-bold ${aboutHeroImageUrl ? 'text-white' : 'text-foreground'}`}>About</h1>
-          <p className={`text-xl max-w-2xl mx-auto mt-3 ${aboutHeroImageUrl ? 'text-white/90' : 'text-muted-foreground'}`}>Know more about our company and leadership.</p>
-        </div>
-      </section>
+      <PageHero
+        title={t("about.banner.title")}
+        subtitle={t("about.banner.subtitle")}
+        badgeText={t("about.banner.badge")}
+        backgroundImageUrl={aboutHeroImageUrl}
+        icon={<Building2 className={`h-5 w-5 ${aboutHeroImageUrl ? "text-white" : "text-primary"}`} />}
+      />
 
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
 
-        {loading && <p className="text-sm text-muted-foreground">Loading company details...</p>}
+        {loading && <p className="text-sm text-muted-foreground">{t("about.company.loading")}</p>}
 
         {!loading && hasCompany && (
           <Card className="overflow-hidden">
@@ -118,18 +108,18 @@ const About = () => {
               )}
               {profile?.description && <p className="text-sm leading-6">{profile.description}</p>}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                {profile?.reraNumber && <p className="inline-flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /><span className="font-medium">RERA No:</span> {profile.reraNumber}</p>}
-                {profile?.phone && <p className="inline-flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /><span className="font-medium">Phone:</span> {profile.phone}</p>}
-                {profile?.whatsappNumber && <p className="inline-flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /><span className="font-medium">WhatsApp:</span> {profile.whatsappNumber}</p>}
-                {profile?.email && <p className="inline-flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /><span className="font-medium">Email:</span> {profile.email}</p>}
+                {profile?.reraNumber && <p className="inline-flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /><span className="font-medium">{t("about.company.rera")}</span> {profile.reraNumber}</p>}
+                {profile?.phone && <p className="inline-flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /><span className="font-medium">{t("about.company.phone")}</span> {profile.phone}</p>}
+                {profile?.whatsappNumber && <p className="inline-flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /><span className="font-medium">{t("about.company.whatsapp")}</span> {profile.whatsappNumber}</p>}
+                {profile?.email && <p className="inline-flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /><span className="font-medium">{t("about.company.email")}</span> {profile.email}</p>}
                 {profile?.website && (
                   <p className="inline-flex items-center gap-2">
                     <Globe className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Website:</span>{" "}
+                    <span className="font-medium">{t("about.company.website")}</span>{" "}
                     <a href={profile.website} target="_blank" rel="noreferrer" className="text-primary hover:underline">{profile.website}</a>
                   </p>
                 )}
-                {profile?.address && <p className="inline-flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /><span className="font-medium">Address:</span> {profile.address}</p>}
+                {profile?.address && <p className="inline-flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /><span className="font-medium">{t("about.company.address")}</span> {profile.address}</p>}
               </div>
               {socialLinks.length > 0 && (
                 <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -154,7 +144,7 @@ const About = () => {
 
         {!loading && executives.length > 0 && (
           <section className="space-y-4">
-            <h2 className="text-2xl font-semibold inline-flex items-center gap-2"><Users className="h-6 w-6 text-primary" /> Our Executives</h2>
+            <Txt k="about.team.title" as="h2" className="text-2xl font-semibold inline-flex items-center gap-2" before={<Users className="h-6 w-6 text-primary" />} />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {executives.map((executive) => (
                 <Card key={executive.id}>
@@ -179,7 +169,7 @@ const About = () => {
         )}
 
         {!loading && !hasCompany && executives.length === 0 && (
-          <p className="text-sm text-muted-foreground">About content is not available yet.</p>
+          <p className="text-sm text-muted-foreground">{t("about.company.empty")}</p>
         )}
       </main>
     </div>

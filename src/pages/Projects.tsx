@@ -13,6 +13,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SearchSuggest, { type Suggestion } from "@/components/SearchSuggest";
+import PageHero from "@/components/public/PageHero";
+import { useText } from "@/content/siteText";
 import { api } from "@/lib/api";
 import { Property } from "@/types/property";
 import { mapBackendProperty } from '@/lib/propertyMapper';
@@ -38,6 +40,7 @@ const Projects = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const { t } = useText();
   const navigate = useNavigate();
 
   /** Picking a suggestion sets the matching filter rather than leaving the text in the search box. */
@@ -201,7 +204,7 @@ const Projects = () => {
           </div>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Project Types</SelectItem>
+          <SelectItem value="all">{t("projects.filters.allTypes")}</SelectItem>
           {propertyTypes.map(type => (
             <SelectItem key={type} value={type}>{typeLabel(type)}</SelectItem>
           ))}
@@ -216,7 +219,7 @@ const Projects = () => {
           </div>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Locations</SelectItem>
+          <SelectItem value="all">{t("projects.filters.allLocations")}</SelectItem>
           {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
         </SelectContent>
       </Select>
@@ -226,7 +229,7 @@ const Projects = () => {
           <SelectValue placeholder="Construction Status" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="all">{t("projects.filters.allStatus")}</SelectItem>
           {Object.entries(ProjectStatusLabels).map(([value, label]) => (
             <SelectItem key={value} value={value}>{label}</SelectItem>
           ))}
@@ -241,7 +244,7 @@ const Projects = () => {
           </div>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Bedrooms</SelectItem>
+          <SelectItem value="all">{t("projects.filters.allBedrooms")}</SelectItem>
           <SelectItem value="1">1 BHK</SelectItem>
           <SelectItem value="2">2 BHK</SelectItem>
           <SelectItem value="3">3 BHK</SelectItem>
@@ -257,7 +260,7 @@ const Projects = () => {
           </div>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Builders</SelectItem>
+          <SelectItem value="all">{t("projects.filters.allBuilders")}</SelectItem>
           {builders.map(builder => (
             <SelectItem key={builder} value={builder}>{builder}</SelectItem>
           ))}
@@ -271,7 +274,7 @@ const Projects = () => {
     <div className="flex flex-col gap-4 md:flex-row md:items-end">
       <div className="flex-1">
         <div className={`flex items-center justify-between text-sm mb-3 ${onDark ? 'text-white' : 'text-foreground'}`}>
-          <span className="font-medium">Budget</span>
+          <span className="font-medium">{t("projects.filters.budget")}</span>
           <span>{formatPriceCap(priceRange[0])} — {formatPriceCap(priceRange[1])}</span>
         </div>
         <Slider
@@ -287,7 +290,7 @@ const Projects = () => {
       </div>
       {onDark && activeFiltersCount + (searchQuery ? 1 : 0) > 0 && (
         <Button variant="outline" onClick={clearFilters} className="h-10 gap-2 bg-background/95">
-          <SlidersHorizontal className="h-4 w-4" /> Reset filters
+          <SlidersHorizontal className="h-4 w-4" /> {t("projects.filters.reset")}
         </Button>
       )}
     </div>
@@ -300,21 +303,7 @@ const Projects = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <section className="relative border-b">
-        {/* Only the photo is clipped, so the search suggestions can drop below the banner */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-cover bg-center md:bg-fixed scale-105" style={{ backgroundImage: `url(${heroBackgroundUrl})` }} />
-          <div className={`absolute inset-0 ${hasCustomHeroImage ? 'bg-black/50' : 'bg-black/55'}`} />
-        </div>
-
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-8 md:pt-16 pb-8 md:pb-14">
-          <div className="text-center mb-5 md:mb-8">
-            <h1 className="text-3xl md:text-5xl font-bold mb-2 md:mb-3 text-white">Browse Properties</h1>
-            <p className="text-base md:text-xl max-w-2xl mx-auto text-white/90">
-              Discover your perfect home from our collection of premium properties
-            </p>
-          </div>
-
+      <PageHero title={t("projects.banner.title")} subtitle={t("projects.banner.subtitle")} backgroundImageUrl={heroBackgroundUrl}>
           <div className="rounded-2xl p-3 md:p-6 space-y-4 border border-white/30 bg-background/25 backdrop-blur-md shadow-2xl">
             <div className="flex gap-2 md:grid md:grid-cols-2 xl:grid-cols-7 md:gap-4">
               <div className="relative z-20 flex-1 md:col-span-2">
@@ -323,7 +312,6 @@ const Projects = () => {
                   onChange={setSearchQuery}
                   onSelect={applySuggestion}
                   properties={properties}
-                  placeholder="Area, city, project or builder"
                   inputClassName="h-12 rounded-md border border-input bg-background/95 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
@@ -333,22 +321,22 @@ const Projects = () => {
                 <SheetTrigger asChild>
                   <Button variant="outline" className="h-12 shrink-0 gap-2 bg-background/95 md:hidden">
                     <SlidersHorizontal className="h-4 w-4" />
-                    Filters
+                    {t("projects.filters.button")}
                     {activeFiltersCount > 0 && <Badge className="h-5 min-w-5 justify-center px-1.5">{activeFiltersCount}</Badge>}
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
                   <SheetHeader className="text-left">
-                    <SheetTitle>Filters</SheetTitle>
+                    <SheetTitle>{t("projects.filters.panelTitle")}</SheetTitle>
                   </SheetHeader>
                   <div className="mt-4 space-y-3">{filterSelects}</div>
                   <div className="mt-5">{priceFilter(false)}</div>
                   <div className="sticky bottom-0 -mx-6 mt-6 flex gap-3 border-t bg-background px-6 pt-4 pb-2">
                     <Button variant="outline" className="flex-1" onClick={clearFilters} disabled={activeFiltersCount === 0 && !searchQuery}>
-                      Clear all
+                      {t("projects.filters.clearAll")}
                     </Button>
                     <Button className="flex-[2]" onClick={() => setFiltersOpen(false)}>
-                      Show {filteredProperties.length} project{filteredProperties.length === 1 ? '' : 's'}
+                      {t("projects.filters.show", { count: filteredProperties.length })}
                     </Button>
                   </div>
                 </SheetContent>
@@ -359,8 +347,7 @@ const Projects = () => {
 
             <div className="hidden md:block">{priceFilter(true)}</div>
           </div>
-        </div>
-      </section>
+      </PageHero>
 
       {/* Properties Grid */}
       <section className="py-8 md:py-12">
@@ -370,17 +357,16 @@ const Projects = () => {
             <div className="mb-6 md:mb-8 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm md:text-base text-muted-foreground">
-                  <span className="font-semibold text-foreground">{filteredProperties.length}</span>{' '}
-                  {filteredProperties.length === 1 ? 'project' : 'projects'}
-                  {filteredProperties.length !== properties.length && <> of {properties.length}</>}
+                  {t(filteredProperties.length === 1 ? "projects.results.countOne" : "projects.results.countMany", { count: filteredProperties.length })}
+                  {filteredProperties.length !== properties.length && <> {t("projects.results.of", { total: properties.length })}</>}
                 </p>
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="h-9 w-[150px]">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="newest">Newest first</SelectItem>
-                    <SelectItem value="name">Name A–Z</SelectItem>
+                    <SelectItem value="newest">{t("projects.results.sortNewest")}</SelectItem>
+                    <SelectItem value="name">{t("projects.results.sortName")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -399,7 +385,7 @@ const Projects = () => {
                     </button>
                   ))}
                   <button type="button" onClick={clearFilters} className="shrink-0 px-2 text-sm font-medium text-primary hover:underline">
-                    Clear all
+                    {t("projects.filters.clearAll")}
                   </button>
                 </div>
               )}
@@ -422,9 +408,9 @@ const Projects = () => {
           ) : error ? (
             <PageState
               icon={<Filter className="h-14 w-14" />}
-              title="Couldn’t load properties"
+              title={t("projects.results.errorTitle")}
               description={error}
-              action={<Button onClick={() => window.location.reload()} variant="outline">Retry</Button>}
+              action={<Button onClick={() => window.location.reload()} variant="outline">{t("projects.results.retry")}</Button>}
             />
           ) : filteredProperties.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -435,9 +421,9 @@ const Projects = () => {
           ) : (
             <PageState
               icon={<Filter className="h-16 w-16" />}
-              title="No Properties Found"
-              description="Try adjusting your filters or search query to find more properties."
-              action={<Button onClick={clearFilters} variant="outline">Clear All Filters</Button>}
+              title={t("projects.results.emptyTitle")}
+              description={t("projects.results.emptyText")}
+              action={<Button onClick={clearFilters} variant="outline">{t("projects.results.emptyButton")}</Button>}
             />
           )}
         </div>

@@ -88,3 +88,24 @@ export function useSavedIds(): string[] {
   }, []);
   return ids;
 }
+
+/**
+ * Heart button handler shared by project cards and the project page: toggles the project and shows
+ * the message (with a sign-in nudge for visitors who aren't signed in). Wording: Settings -> Site text.
+ */
+export async function toggleSavedWithMessage(propertyId: string, signedIn: boolean) {
+  const [{ toast }, { text }, { openBuyerLogin }] = await Promise.all([import("sonner"), import("@/content/siteText"), import("@/lib/buyer")]);
+  try {
+    const nowSaved = await toggleSaved(propertyId);
+    if (nowSaved && !signedIn) {
+      toast.success(text("shared.save.savedGuest"), {
+        description: text("shared.save.savedGuestHint"),
+        action: { label: text("shared.save.signIn"), onClick: () => openBuyerLogin() },
+      });
+    } else {
+      toast.success(nowSaved ? text("shared.save.saved") : text("shared.save.removed"));
+    }
+  } catch {
+    toast.error("Couldn't update saved projects. Please try again.");
+  }
+}

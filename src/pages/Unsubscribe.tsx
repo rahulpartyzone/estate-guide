@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { usePageTitle } from "@/lib/pageTitle";
+import { Txt, useText } from "@/content/siteText";
 
 /**
  * Landing page for the "Unsubscribe" link in newsletters. It asks for a click rather than
@@ -13,6 +14,7 @@ import { usePageTitle } from "@/lib/pageTitle";
  */
 const Unsubscribe = () => {
   usePageTitle("Unsubscribe");
+  const { t } = useText();
   const [params] = useSearchParams();
   const token = params.get("token") || "";
   const [state, setState] = useState<"idle" | "working" | "done" | "invalid" | "error">(token ? "idle" : "invalid");
@@ -36,30 +38,28 @@ const Unsubscribe = () => {
             {state === "done" ? (
               <>
                 <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-                <h1 className="text-2xl font-semibold">You're unsubscribed</h1>
-                <p className="text-muted-foreground">You won't get any more newsletters from us.</p>
+                <h1 className="text-2xl font-semibold">{t("other.unsub.doneTitle")}</h1>
+                <Txt k="other.unsub.doneText" as="p" className="text-muted-foreground" />
               </>
             ) : state === "invalid" ? (
               <>
                 <MailX className="mx-auto h-10 w-10 text-muted-foreground" />
-                <h1 className="text-2xl font-semibold">This link doesn't work</h1>
-                <p className="text-muted-foreground">
-                  It may be from a test email, or you may already be unsubscribed. If you're still getting emails, reply to one and we'll remove you.
-                </p>
+                <h1 className="text-2xl font-semibold">{t("other.unsub.invalidTitle")}</h1>
+                <Txt k="other.unsub.invalidText" as="p" className="text-muted-foreground" />
               </>
             ) : (
               <>
                 <MailX className="mx-auto h-10 w-10 text-primary" />
-                <h1 className="text-2xl font-semibold">Unsubscribe from our newsletter?</h1>
-                <p className="text-muted-foreground">You'll stop getting updates about new projects and offers.</p>
-                {state === "error" && <p className="text-sm text-destructive">Something went wrong. Please try again.</p>}
+                <h1 className="text-2xl font-semibold">{t("other.unsub.title")}</h1>
+                <Txt k="other.unsub.text" as="p" className="text-muted-foreground" />
+                {state === "error" && <p className="text-sm text-destructive">{t("other.unsub.error")}</p>}
                 <Button className="w-full" onClick={unsubscribe} disabled={state === "working"}>
-                  {state === "working" ? "Unsubscribing…" : "Yes, unsubscribe me"}
+                  {state === "working" ? t("other.unsub.working") : t("other.unsub.button")}
                 </Button>
               </>
             )}
             <Button asChild variant="link">
-              <Link to="/">Back to the home page</Link>
+              <Link to="/">{t("other.unsub.home")}</Link>
             </Button>
           </CardContent>
         </Card>

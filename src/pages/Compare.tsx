@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Txt, text, useText } from "@/content/siteText";
 import { Link } from "react-router-dom";
 import { Scale, X } from "lucide-react";
 import Header from "@/components/Header";
@@ -13,27 +14,28 @@ import type { Property } from "@/types/property";
 type RowDef = { label: string; value: (p: Property) => React.ReactNode };
 
 const ROWS: RowDef[] = [
-  { label: "Price", value: (p) => p.priceRange },
-  { label: "Location", value: (p) => [p.area, p.city].filter(Boolean).join(", ") },
-  { label: "Builder", value: (p) => p.builder },
-  { label: "Type", value: (p) => PropertyTypeLabels[p.propertyType as keyof typeof PropertyTypeLabels] || p.propertyType },
-  { label: "Status", value: (p) => ProjectStatusLabels[p.status as keyof typeof ProjectStatusLabels] || p.status },
-  { label: "Possession", value: (p) => p.possessionTime || p.completionDate },
-  { label: "Unit sizes", value: (p) => p.unitSizeRange || p.size },
-  { label: "Configurations", value: (p) => p.unitVariants || p.bedroomSummary },
-  { label: "Development size", value: (p) => p.developmentSize },
-  { label: "Total units", value: (p) => (p.totalUnits ? p.totalUnits.toLocaleString("en-IN") : "") },
-  { label: "Towers / blocks", value: (p) => p.towersBlocks },
-  { label: "Floor plans", value: (p) => (p.floorPlans?.length ? `${p.floorPlans.length}` : "") },
-  { label: "Amenities", value: (p) => (p.amenities?.length ? `${p.amenities.length}: ${p.amenities.slice(0, 8).join(", ")}${p.amenities.length > 8 ? "…" : ""}` : "") },
-  { label: "RERA", value: (p) => p.reraId },
-  { label: "Brochure", value: (p) => (p.brochureUrl ? "Available" : "Not yet") },
-  { label: "Video / virtual tour", value: (p) => [p.videoUrl && "Video", p.virtualTourUrl && "Virtual tour"].filter(Boolean).join(", ") },
+  { label: "compare.row.price", value: (p) => p.priceRange },
+  { label: "compare.row.location", value: (p) => [p.area, p.city].filter(Boolean).join(", ") },
+  { label: "compare.row.builder", value: (p) => p.builder },
+  { label: "compare.row.type", value: (p) => PropertyTypeLabels[p.propertyType as keyof typeof PropertyTypeLabels] || p.propertyType },
+  { label: "compare.row.status", value: (p) => ProjectStatusLabels[p.status as keyof typeof ProjectStatusLabels] || p.status },
+  { label: "compare.row.possession", value: (p) => p.possessionTime || p.completionDate },
+  { label: "compare.row.unitSizes", value: (p) => p.unitSizeRange || p.size },
+  { label: "compare.row.configurations", value: (p) => p.unitVariants || p.bedroomSummary },
+  { label: "compare.row.developmentSize", value: (p) => p.developmentSize },
+  { label: "compare.row.totalUnits", value: (p) => (p.totalUnits ? p.totalUnits.toLocaleString("en-IN") : "") },
+  { label: "compare.row.towers", value: (p) => p.towersBlocks },
+  { label: "compare.row.floorPlans", value: (p) => (p.floorPlans?.length ? `${p.floorPlans.length}` : "") },
+  { label: "compare.row.amenities", value: (p) => (p.amenities?.length ? `${p.amenities.length}: ${p.amenities.slice(0, 8).join(", ")}${p.amenities.length > 8 ? "…" : ""}` : "") },
+  { label: "compare.row.rera", value: (p) => p.reraId },
+  { label: "compare.row.brochure", value: (p) => (p.brochureUrl ? text("compare.row.brochureYes") : text("compare.row.brochureNo")) },
+  { label: "compare.row.media", value: (p) => [p.videoUrl && text("compare.row.video"), p.virtualTourUrl && text("compare.row.tour")].filter(Boolean).join(", ") },
 ];
 
 const Compare = () => {
   usePageTitle("Compare projects");
   const ids = useCompareIds();
+  const { t } = useText();
   const [projects, setProjects] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -64,17 +66,17 @@ const Compare = () => {
       <Header />
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 flex items-center gap-3">
-          <Scale className="h-8 w-8 text-primary" aria-hidden="true" /> Compare projects
+          <Scale className="h-8 w-8 text-primary" aria-hidden="true" /> {t("compare.title")}
         </h1>
-        <p className="text-muted-foreground mb-8">Pick up to 3 projects with "Add to comparison" on any project page.</p>
+        <Txt k="compare.subtitle" as="p" className="text-muted-foreground mb-8" />
 
-        {loading && !projects.length && <div className="text-sm text-muted-foreground">Loading…</div>}
+        {loading && !projects.length && <div className="text-sm text-muted-foreground">{t("compare.loading")}</div>}
 
         {!loading && !ids.length && (
           <div className="text-center py-16 border rounded-lg bg-muted/20">
-            <p className="text-foreground font-medium mb-1">Nothing to compare yet</p>
-            <p className="text-sm text-muted-foreground mb-6">Open a project and tap "Add to comparison".</p>
-            <Link to="/projects"><Button>Browse projects</Button></Link>
+            <p className="text-foreground font-medium mb-1">{t("compare.emptyTitle")}</p>
+            <Txt k="compare.emptyText" as="p" className="text-sm text-muted-foreground mb-6" />
+            <Link to="/projects"><Button>{t("compare.emptyButton")}</Button></Link>
           </div>
         )}
 
@@ -83,7 +85,7 @@ const Compare = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/40 align-top">
-                  <th className="text-left p-4 w-40 font-medium text-muted-foreground">Project</th>
+                  <th className="text-left p-4 w-40 font-medium text-muted-foreground">{t("compare.row.project")}</th>
                   {projects.map((p) => (
                     <th key={p.id} className="text-left p-4 min-w-[220px] font-normal">
                       <div className="relative">
@@ -107,7 +109,7 @@ const Compare = () => {
               <tbody>
                 {ROWS.map((row) => (
                   <tr key={row.label} className="border-t align-top">
-                    <th scope="row" className="text-left p-4 font-medium text-muted-foreground">{row.label}</th>
+                    <th scope="row" className="text-left p-4 font-medium text-muted-foreground">{t(row.label)}</th>
                     {projects.map((p) => {
                       const v = row.value(p);
                       return <td key={p.id} className="p-4 text-foreground">{v || <span className="text-muted-foreground">-</span>}</td>;
@@ -118,7 +120,7 @@ const Compare = () => {
                   <td className="p-4" />
                   {projects.map((p) => (
                     <td key={p.id} className="p-4">
-                      <Link to={`/project/${p.id}`}><Button size="sm" className="w-full">View project</Button></Link>
+                      <Link to={`/project/${p.id}`}><Button size="sm" className="w-full">{t("compare.viewProject")}</Button></Link>
                     </td>
                   ))}
                 </tr>

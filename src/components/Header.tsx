@@ -13,6 +13,7 @@ import {
 import { logoutBuyer, openBuyerLogin, useBuyerState } from "@/lib/buyer";
 import { formatPhone } from "@/lib/otpWidget";
 import { toast } from "sonner";
+import { useText } from "@/content/siteText";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { absolutizeApiUrl } from "@/lib/url";
@@ -23,11 +24,12 @@ const Header = () => {
   const [logoUrl, setLogoUrl] = useState("");
   const [companyName, setCompanyName] = useState("YourHomeSearch");
   const savedCount = useSavedIds().length;
+  const { t, show, version } = useText();
   const { buyer, loaded: buyerLoaded } = useBuyerState();
   const signOut = async () => {
     await logoutBuyer();
     setIsMobileMenuOpen(false);
-    toast.success("Signed out");
+    toast.success(t("shared.header.signedOut"));
   };
 
   useEffect(() => {
@@ -57,14 +59,16 @@ const Header = () => {
 
   const navigation = useMemo(() => {
     const links = [
-      { name: "Projects", href: "/projects" },
-      { name: "Builders", href: "/builders" },
-      { name: "News", href: "/news" },
+      { key: "shared.header.projects", href: "/projects" },
+      { key: "shared.header.builders", href: "/builders" },
+      { key: "shared.header.news", href: "/news" },
     ];
-    if (showAbout) links.push({ name: "About", href: "/about" });
-    if (savedCount > 0) links.push({ name: `Saved (${savedCount})`, href: "/saved" });
-    return links;
-  }, [showAbout, savedCount]);
+    if (showAbout) links.push({ key: "shared.header.about", href: "/about" });
+    if (savedCount > 0) links.push({ key: "shared.header.saved", href: "/saved" });
+    // A link the admin hid in Settings -> Site text is left out
+    return links.filter((l) => show(l.key)).map((l) => ({ name: t(l.key, { count: savedCount }), href: l.href }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAbout, savedCount, version]);
 
   return (
     <header className="bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 z-50">
@@ -93,9 +97,9 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
-            {buyerLoaded && !buyer && (
+            {buyerLoaded && !buyer && show("shared.header.signIn") && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => openBuyerLogin()}>
-                <UserRound className="h-4 w-4" /> Sign in
+                <UserRound className="h-4 w-4" /> {t("shared.header.signIn")}
               </Button>
             )}
             {buyer && (
@@ -103,22 +107,22 @@ const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2">
                     <UserRound className="h-4 w-4" />
-                    <span className="max-w-[120px] truncate">{buyer.name?.split(" ")[0] || "My account"}</span>
+                    <span className="max-w-[120px] truncate">{buyer.name?.split(" ")[0] || t("shared.header.account")}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="font-normal">
-                    <div className="font-medium">{buyer.name || "Signed in"}</div>
+                    <div className="font-medium">{buyer.name || t("shared.header.signedIn")}</div>
                     <div className="text-xs text-muted-foreground">{formatPhone(buyer.phone)}</div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/saved" className="cursor-pointer">
-                      <Heart className="mr-2 h-4 w-4" /> Saved projects{savedCount ? ` (${savedCount})` : ""}
+                      <Heart className="mr-2 h-4 w-4" /> {t("shared.header.accountSaved")}{savedCount ? ` (${savedCount})` : ""}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={signOut} className="cursor-pointer">
-                    <LogOut className="mr-2 h-4 w-4" /> Sign out
+                    <LogOut className="mr-2 h-4 w-4" /> {t("shared.header.signOut")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -156,7 +160,7 @@ const Header = () => {
                 </Link>
               ))}
               <div className="border-t border-border pt-2 mt-2">
-                {buyerLoaded && !buyer && (
+                {buyerLoaded && !buyer && show("shared.header.signIn") && (
                   <button
                     type="button"
                     className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-primary"
@@ -165,17 +169,17 @@ const Header = () => {
                       openBuyerLogin();
                     }}
                   >
-                    <UserRound className="h-4 w-4" /> Sign in
+                    <UserRound className="h-4 w-4" /> {t("shared.header.signIn")}
                   </button>
                 )}
                 {buyer && (
                   <>
                     <div className="px-3 py-2 text-sm">
-                      <div className="font-medium text-foreground">{buyer.name || "Signed in"}</div>
+                      <div className="font-medium text-foreground">{buyer.name || t("shared.header.signedIn")}</div>
                       <div className="text-muted-foreground">{formatPhone(buyer.phone)}</div>
                     </div>
                     <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-left text-muted-foreground hover:text-foreground" onClick={signOut}>
-                      <LogOut className="h-4 w-4" /> Sign out
+                      <LogOut className="h-4 w-4" /> {t("shared.header.signOut")}
                     </button>
                   </>
                 )}
