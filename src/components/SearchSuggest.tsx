@@ -176,7 +176,7 @@ const SearchSuggest = ({ value, onChange, onSelect, onSubmit, properties, placeh
         <ul
           id={listId}
           role="listbox"
-          className="absolute left-0 right-0 top-full z-50 mt-2 max-h-80 overflow-y-auto rounded-xl border bg-popover py-1.5 text-left text-popover-foreground shadow-xl"
+          className="absolute left-0 top-full z-50 mt-2 max-h-80 w-full min-w-[min(20rem,calc(100vw-3rem))] overflow-y-auto rounded-xl border bg-popover py-1.5 text-left text-popover-foreground shadow-xl"
         >
           {suggestions.map((s, i) => {
             const ItemIcon = ICONS[s.kind];

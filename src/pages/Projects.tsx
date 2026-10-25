@@ -49,6 +49,8 @@ const Projects = () => {
     } else if (s.kind === "builder") {
       setSelectedBuilder(s.value);
       setSearchQuery("");
+      // Don't keep a city filter that would hide all of this builder's projects
+      if (selectedCity !== "all" && !properties.some((p) => p.builder === s.value && p.city === selectedCity)) setSelectedCity("all");
     } else {
       setSearchQuery(s.value);
       if (s.city) setSelectedCity(s.city);
